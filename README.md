@@ -21,39 +21,44 @@ Hypercore는 [Vercel Skills CLI](https://github.com/vercel-labs/skills)의 원�
 
 | 런타임 | 설치 예시 | 비고 |
 |---|---|---|
-| Claude Code | `npx skills@1.5.21 add alpoxdev/hypercore-skills -a claude-code` | 프로젝트 설치가 기본 |
-| Codex CLI | `npx skills@1.5.21 add alpoxdev/hypercore-skills -a codex` | project/global 모두 `.agents/skills` canonical 경로 사용 |
-| Cursor | `npx skills@1.5.21 add alpoxdev/hypercore-skills -a cursor` | `npx skills` 표준 대상 |
-| 기타 | `npx skills@1.5.21 add alpoxdev/hypercore-skills` | CLI가 지원하는 agent에 한함 |
+| Claude Code | `npx skills add alpoxdev/hypercore -a claude-code -g` | `-g` 생략 시 프로젝트 설치 |
+| Codex CLI | `npx skills add alpoxdev/hypercore -a codex -g` | project/global 모두 `.agents/skills` canonical 경로 사용 |
+| Cursor | `npx skills add alpoxdev/hypercore -a cursor -g` | `npx skills` 표준 대상 |
+| 기타 | `npx skills add alpoxdev/hypercore -g` | CLI가 지원하는 agent에 한함 |
 
 스킬별 실행 호환은 아래 [스킬 카탈로그](#스킬-카탈로그)의 **호환** 컬럼 또는 각 `SKILL.md`의 `compatibility` 필드에서 확인합니다.
 
 ## 설치 및 수명주기
 
-모든 스킬을 현재 프로젝트에 설치:
+모든 스킬을 사용자 전역에 설치 (`--skill '*'`가 스킬 전체 선택, agent는 CLI가 설치된 것만 감지):
 
 ```bash
-npx skills@1.5.21 add alpoxdev/hypercore-skills --skill '*' -y
+npx skills add alpoxdev/hypercore --skill '*' -g -y
 ```
 
-특정 agent 또는 스킬만 설치:
+스킬과 agent 두 축을 각각 고를 수 있고, 둘 다 와일드카드(`'*'`)와 이름 나열을 받습니다:
 
 ```bash
-npx skills@1.5.21 add alpoxdev/hypercore-skills -a claude-code --skill git-maker -y
-npx skills@1.5.21 add alpoxdev/hypercore-skills -a codex --skill readme-maker -y
+npx skills add alpoxdev/hypercore --skill '*' -a claude-code codex -g -y   # 모든 스킬 → 지정 agent
+npx skills add alpoxdev/hypercore --skill git-maker readme-maker -g -y     # 스킬 여러 개 나열
+npx skills add alpoxdev/hypercore --all -g                                 # 모든 스킬 → 모든 agent
 ```
 
-`-g`/`--global`을 추가할 때만 사용자 전역에 설치됩니다. `--copy`는 설치 시 독립 복사본을 만들며, 생략 시 CLI가 대상 조합에 따라 canonical copy 또는 symlink를 선택합니다.
+`--all`은 `--skill '*' --agent '*' -y`의 축약형입니다. 스킬 전체 설치가 목적이라면 `--skill '*'`를 쓰세요 — `--all`은 agent 감지를 무시하고 CLI가 아는 agent 전체(76개)를 대상으로 삼아, 쓰지 않는 agent의 홈 디렉터리까지 만들고 전역 설치를 지원하지 않는 agent(Eve, PromptScript)에는 실패 줄만 남깁니다.
+
+`-g`/`--global`을 생략하면 현재 프로젝트에만 설치됩니다. `--copy`는 설치 시 독립 복사본을 만들며, 생략 시 CLI가 대상 조합에 따라 canonical copy 또는 symlink를 선택합니다.
+
+`remove`도 `--all`을 받습니다 — 전역 스킬 전체를 지우려면 `npx skills remove --all -y -g`입니다. `add`의 `--all`과 달리 `remove --all`은 확인 프롬프트를 건너뛰지 않으므로 비대화형 실행에서는 `-y`가 필요하고(없으면 아무것도 지우지 않고 종료), `remove`의 `-a`는 `'*'`를 받지 않으니 agent는 이름으로 지정합니다.
 
 설치 후에는 같은 CLI로 전체 수명주기를 관리합니다:
 
 ```bash
-npx skills@1.5.21 list
-npx skills@1.5.21 update
-npx skills@1.5.21 remove git-maker
-npx skills@1.5.21 use alpoxdev/hypercore-skills --skill git-maker
-npx skills@1.5.21 find hypercore --owner alpoxdev
-npx skills@1.5.21 init my-skill
+npx skills list -g
+npx skills update -g
+npx skills remove git-maker -g
+npx skills use alpoxdev/hypercore --skill git-maker
+npx skills find hypercore --owner alpoxdev
+npx skills init my-skill
 ```
 
 `update`와 `remove`는 원격 source 정보가 기록된 lock에 의존합니다. 로컬 경로 복사나 기존 plugin 설치에는 이 provenance가 없으므로, 아래처럼 원격 source로 다시 설치해야 합니다.
@@ -62,27 +67,27 @@ npx skills@1.5.21 init my-skill
 
 1. 기존 스킬을 백업하고 사용 중인 runtime의 plugin/marketplace 설치를 제거합니다.
 2. 실제 원격 source를 지정해 원하는 scope와 agent로 다시 설치합니다.
-3. `npx skills@1.5.21 list --json`과 project `skills-lock.json` 또는 global `.skill-lock.json`에서 source가 `alpoxdev/hypercore-skills`인지 확인합니다.
+3. `npx skills list -g --json`과 project `skills-lock.json` 또는 global `.skill-lock.json`에서 source가 `alpoxdev/hypercore`인지 확인합니다.
 4. 이후 `update`와 `remove`를 실행합니다.
 
 ```bash
-npx skills@1.5.21 add alpoxdev/hypercore-skills -a codex --skill '*' -y
-npx skills@1.5.21 list --json
-npx skills@1.5.21 update
+npx skills add alpoxdev/hypercore -a codex --skill '*' -g -y
+npx skills list -g --json
+npx skills update -g
 ```
 
 Codex는 universal agent이므로 project에서는 `<cwd>/.agents/skills`, global에서는 `$HOME/.agents/skills`가 canonical 설치 경로입니다. `$CODEX_HOME/skills`는 primary 설치/list 경로가 아닙니다. Claude+Codex를 함께 설치할 때 Codex는 canonical 경로를 사용하고 Claude 경로에는 CLI가 symlink를 만들 수 있습니다.
 
-`skills@1.5.21` lock은 원래 선택한 agent 집합이나 `--copy` mode를 저장하지 않습니다. 따라서 `update`는 agent/mode 보존을 보장하지 않으며, 특정 topology가 필요하면 같은 remote source를 원하는 옵션으로 다시 `add`하세요. 부분 `remove` 뒤 provenance 보존도 보장하지 않습니다. 일부 agent만 제거해 남은 파일이 있더라도 계속 update 관리하려면 remote source로 다시 설치해야 합니다.
+`skills` lock은 원래 선택한 agent 집합이나 `--copy` mode를 저장하지 않습니다. 따라서 `update`는 agent/mode 보존을 보장하지 않으며, 특정 topology가 필요하면 같은 remote source를 원하는 옵션으로 다시 `add`하세요. 부분 `remove` 뒤 provenance 보존도 보장하지 않습니다. 일부 agent만 제거해 남은 파일이 있더라도 계속 update 관리하려면 remote source로 다시 설치해야 합니다.
 
 ### 소스에서 직접 사용
 
 레포를 클론해 그대로 가져다 써도 됩니다 (CI나 CLI 빌드/실행에는 별도 의존성이 필요하지 않습니다 — 스킬은 모두 마크다운입니다):
 
 ```bash
-git clone https://github.com/alpoxdev/hypercore-skills.git
+git clone https://github.com/alpoxdev/hypercore.git
 # 원하는 스킬 디렉터리를 자신의 프로젝트로 복사
-cp -R hypercore-skills/skills/git-maker your-project/.claude/skills/
+cp -R hypercore/skills/git-maker your-project/.claude/skills/
 ```
 
 ## 빠른 사용 예시
@@ -214,8 +219,7 @@ lint, typecheck, build, test 같은 프로젝트 게이트를 재현하고, 실�
 ## 프로젝트 구조
 
 ```text
-hypercore-skills/
-├── agents/                # 사용자 정의 에이전트 자리 (현재 비어 있음)
+hypercore/
 ├── cli/                   # @kood/* 도구 모노레포 (pnpm workspace)
 │   └── packages/
 │       └── color/         # @kood/color-cli — color-cli 스킬이 호출
@@ -243,7 +247,7 @@ skills/<name>/
 1. `/skill-maker "<설명>"` — 빈 폴더부터 lean한 `SKILL.md`까지 한 번에.
 2. `/autoresearch-skill <skill-path>` — 만들어진 스킬을 반복 실험으로 점수가 올라가지 않을 때까지 자동 최적화.
 3. 영어 정본(`SKILL.md`) 옆에 한국어 번역(`SKILL.ko.md`)을 함께 유지하세요.
-4. PR이 반영되면 `npx skills@1.5.21 add alpoxdev/hypercore-skills --list`로 저장소의 `skills/` 원격 source에서 발견되는지 확인합니다.
+4. PR이 반영되면 `npx skills add alpoxdev/hypercore --list`로 저장소의 `skills/` 원격 source에서 발견되는지 확인합니다.
 
 세부 설계 가이드는 [`skills/skill-maker/SKILL.md`](skills/skill-maker/SKILL.md)와 [`instructions/`](instructions/)를 참고하세요.
 
@@ -276,7 +280,7 @@ pnpm -C cli format      # Prettier
 
 새 스킬을 추가했을 때:
 
-1. [README의 스킬 표](#스킬-카탈로그)와 `npx skills@1.5.21 add alpoxdev/hypercore-skills --list` 결과를 갱신·확인.
+1. [README의 스킬 표](#스킬-카탈로그)와 `npx skills add alpoxdev/hypercore --list` 결과를 갱신·확인.
 2. `skill-tester`로 트리거/동작을 검증.
 3. `autoresearch-skill`로 점수 plateau까지 다듬는 것을 권장.
 
@@ -298,4 +302,4 @@ PR 환영합니다. 작업 흐름:
 
 - [Vercel Skills](https://github.com/vercel-labs/skills) — 패키지 구조와 `npx skills add` 워크플로의 기반.
 - Claude Code · Codex · Cursor · Antigravity 팀의 agent skill 생태계.
-- 모든 컨트리뷰터 — 자세한 목록은 [GitHub Contributors](https://github.com/alpoxdev/hypercore-skills/graphs/contributors).
+- 모든 컨트리뷰터 — 자세한 목록은 [GitHub Contributors](https://github.com/alpoxdev/hypercore/graphs/contributors).
