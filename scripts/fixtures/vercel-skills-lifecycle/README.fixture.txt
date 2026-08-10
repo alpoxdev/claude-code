@@ -1,8 +1,8 @@
 # Hypercore
 
-Install with `npx skills@1.5.21`.
+Install with `npx skills`.
 
-The public lifecycle commands are `npx skills@1.5.21 add`, `npx skills@1.5.21 list`, `npx skills@1.5.21 update`, `npx skills@1.5.21 remove`, `npx skills@1.5.21 use`, `npx skills@1.5.21 init`, and `npx skills@1.5.21 find`.
+The public lifecycle commands are `npx skills add`, `npx skills list`, `npx skills update`, `npx skills remove`, `npx skills use`, `npx skills init`, and `npx skills find`.
 
 Codex CLI uses `.agents/skills` as its canonical destination. `CODEX_HOME` is not the primary destination.
 

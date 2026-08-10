@@ -59,14 +59,14 @@ function validateNoPluginAdapters() {
 function validateReadme() {
   const readme = content(join(root, "README.md"));
   const required = [
-    "npx skills@1.5.21",
-    "npx skills@1.5.21 add",
-    "npx skills@1.5.21 list",
-    "npx skills@1.5.21 update",
-    "npx skills@1.5.21 remove",
-    "npx skills@1.5.21 use",
-    "npx skills@1.5.21 init",
-    "npx skills@1.5.21 find",
+    "npx skills",
+    "npx skills add",
+    "npx skills list",
+    "npx skills update",
+    "npx skills remove",
+    "npx skills use",
+    "npx skills init",
+    "npx skills find",
     ".agents/skills",
     "CODEX_HOME",
   ];
@@ -80,17 +80,17 @@ function validateReadme() {
 function validateLiveGate() {
   assert(process.env.HYPERCORE_ENABLE_VERCEL_SKILLS_LIVE_GATE === "1", "--live requires HYPERCORE_ENABLE_VERCEL_SKILLS_LIVE_GATE=1");
   const commands = [
-    ["add", "alpoxdev/hypercore-skills", "--list"],
+    ["add", "alpoxdev/hypercore", "--list"],
     ["find", "hypercore", "--owner", "alpoxdev"],
   ];
   const outputs = [];
   for (const arguments_ of commands) {
-    const result = spawnSync("npx", ["--yes", "skills@1.5.21", ...arguments_], { cwd: root, encoding: "utf8" });
-    assert(result.status === 0, `live skills@1.5.21 ${arguments_[0]} gate failed: ${result.stderr || result.stdout}`);
+    const result = spawnSync("npx", ["--yes", "skills", ...arguments_], { cwd: root, encoding: "utf8" });
+    assert(result.status === 0, `live skills ${arguments_[0]} gate failed: ${result.stderr || result.stdout}`);
     outputs.push(`${result.stdout}\n${result.stderr}`);
   }
   assert(outputs[0].includes("git-maker"), "live add --list did not discover Hypercore skills");
-  assert(outputs[1].includes("alpoxdev/hypercore-skills"), "live find returned a stale or missing Hypercore source identity");
+  assert(outputs[1].includes("alpoxdev/hypercore"), "live find returned a stale or missing Hypercore source identity");
 }
 
 try {

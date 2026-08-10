@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // @ts-check
 
-/** Exercise deterministic source checks and the opt-in pinned upstream lifecycle. */
+/** Exercise deterministic source checks and the opt-in public upstream lifecycle. */
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -59,7 +59,7 @@ function output(result) {
 /** @param {string} root @param {string[]} arguments_ */
 function runSkills(root, arguments_) {
   return Bun.spawnSync({
-    cmd: ["npx", "--yes", "skills@1.5.21", ...arguments_],
+    cmd: ["npx", "--yes", "skills", ...arguments_],
     cwd: root,
     env: isolatedEnvironment(root),
     stdout: "pipe",
@@ -84,7 +84,7 @@ test("classifies frontmatter, bilingual, adapter, and README contract failures",
     ["frontmatter", (root) => writeFileSync(join(root, "skills", "example", "SKILL.md"), "# Missing frontmatter\n"), "skills/example/SKILL.md must start with YAML frontmatter"],
     ["bilingual", (root) => rmSync(join(root, "skills", "example", "SKILL.ko.md")), "skills/example/SKILL.ko.md must be a file"],
     ["adapter", (root) => mkdirSync(join(root, ".claude-plugin")), ".claude-plugin must not remain"],
-    ["readme", (root) => writeFileSync(join(root, "README.md"), "npx skills@1.5.21\n"), "README.md must document npx skills@1.5.21 add"],
+    ["readme", (root) => writeFileSync(join(root, "README.md"), "npx skills\n"), "README.md must document npx skills add"],
   ];
   for (const [name, change, expected] of cases) {
     const root = mkdtempSync(join(tmpdir(), `vercel-skills-${name}-`));
@@ -107,20 +107,20 @@ test.skipIf(process.env.HYPERCORE_ENABLE_VERCEL_SKILLS_LIVE_GATE !== "1")(
     try {
       const useRoot = join(root, "use-only");
       mkdirSync(useRoot);
-      const use = runSkills(useRoot, ["use", "alpoxdev/hypercore-skills", "--skill", "git-maker"]);
+      const use = runSkills(useRoot, ["use", "alpoxdev/hypercore", "--skill", "git-maker"]);
       expect(use.exitCode).toBe(0);
       expect(output(use)).toContain("git-maker");
       expect(existsSync(join(useRoot, "skills-lock.json"))).toBe(false);
       expect(existsSync(join(useRoot, ".agents"))).toBe(false);
       expect(existsSync(join(useRoot, ".claude"))).toBe(false);
 
-      const projectAdd = runSkills(root, ["add", "alpoxdev/hypercore-skills", "--skill", "git-maker", "-a", "codex", "-y"]);
+      const projectAdd = runSkills(root, ["add", "alpoxdev/hypercore", "--skill", "git-maker", "-a", "codex", "-y"]);
       expect(projectAdd.exitCode).toBe(0);
 
       const projectLockPath = join(root, "skills-lock.json");
       const projectLock = JSON.parse(readFileSync(projectLockPath, "utf8"));
       expect(projectLock.version).toBe(1);
-      expect(projectLock.skills["git-maker"].source).toBe("alpoxdev/hypercore-skills");
+      expect(projectLock.skills["git-maker"].source).toBe("alpoxdev/hypercore");
       expect(projectLock.skills["git-maker"].computedHash).toBeTruthy();
 
       const projectUpdate = runSkills(root, ["update", "git-maker", "-y"]);
@@ -133,7 +133,7 @@ test.skipIf(process.env.HYPERCORE_ENABLE_VERCEL_SKILLS_LIVE_GATE !== "1")(
       expect(projectList.exitCode).toBe(0);
       const installed = JSON.parse(new TextDecoder().decode(projectList.stdout));
       expect(installed).toHaveLength(1);
-      expect(installed[0].source).toBe("alpoxdev/hypercore-skills");
+      expect(installed[0].source).toBe("alpoxdev/hypercore");
       expect(installed[0].path).toContain("/.agents/skills/git-maker");
 
       expect(runSkills(root, ["remove", "git-maker", "-y"]).exitCode).toBe(0);
@@ -142,14 +142,14 @@ test.skipIf(process.env.HYPERCORE_ENABLE_VERCEL_SKILLS_LIVE_GATE !== "1")(
       const projectLockAfterRemove = JSON.parse(readFileSync(projectLockPath, "utf8"));
       expect(projectLockAfterRemove.skills["git-maker"]).toBeUndefined();
 
-      const copyAdd = runSkills(root, ["add", "alpoxdev/hypercore-skills", "--skill", "git-maker", "-a", "claude-code", "--copy", "-y"]);
+      const copyAdd = runSkills(root, ["add", "alpoxdev/hypercore", "--skill", "git-maker", "-a", "claude-code", "--copy", "-y"]);
       expect(copyAdd.exitCode).toBe(0);
       const claudeCopy = join(root, ".claude", "skills", "git-maker");
       expect(lstatSync(claudeCopy).isDirectory()).toBe(true);
       expect(lstatSync(claudeCopy).isSymbolicLink()).toBe(false);
       expect(runSkills(root, ["remove", "git-maker", "-y"]).exitCode).toBe(0);
 
-      const multiAdd = runSkills(root, ["add", "alpoxdev/hypercore-skills", "--skill", "git-maker", "-a", "claude-code", "-a", "codex", "-y"]);
+      const multiAdd = runSkills(root, ["add", "alpoxdev/hypercore", "--skill", "git-maker", "-a", "claude-code", "-a", "codex", "-y"]);
       expect(multiAdd.exitCode).toBe(0);
       expect(existsSync(join(root, ".agents", "skills", "git-maker"))).toBe(true);
       expect(existsSync(join(root, ".claude", "skills", "git-maker"))).toBe(true);
@@ -160,19 +160,19 @@ test.skipIf(process.env.HYPERCORE_ENABLE_VERCEL_SKILLS_LIVE_GATE !== "1")(
       const partialLock = JSON.parse(readFileSync(projectLockPath, "utf8"));
       expect(partialLock.skills["git-maker"]).toBeUndefined();
 
-      const managedReAdd = runSkills(root, ["add", "alpoxdev/hypercore-skills", "--skill", "git-maker", "-a", "codex", "-y"]);
+      const managedReAdd = runSkills(root, ["add", "alpoxdev/hypercore", "--skill", "git-maker", "-a", "codex", "-y"]);
       expect(managedReAdd.exitCode).toBe(0);
       const restoredLock = JSON.parse(readFileSync(projectLockPath, "utf8"));
-      expect(restoredLock.skills["git-maker"].source).toBe("alpoxdev/hypercore-skills");
+      expect(restoredLock.skills["git-maker"].source).toBe("alpoxdev/hypercore");
       expect(restoredLock.skills["git-maker"].computedHash).toBeTruthy();
       expect(runSkills(root, ["remove", "git-maker", "-y"]).exitCode).toBe(0);
 
-      const globalAdd = runSkills(root, ["add", "alpoxdev/hypercore-skills", "--skill", "git-maker", "-a", "codex", "-g", "-y"]);
+      const globalAdd = runSkills(root, ["add", "alpoxdev/hypercore", "--skill", "git-maker", "-a", "codex", "-g", "-y"]);
       expect(globalAdd.exitCode).toBe(0);
       const globalLockPath = join(root, "xdg", "skills", ".skill-lock.json");
       const globalLock = JSON.parse(readFileSync(globalLockPath, "utf8"));
       expect(globalLock.version).toBe(3);
-      expect(globalLock.skills["git-maker"].source).toBe("alpoxdev/hypercore-skills");
+      expect(globalLock.skills["git-maker"].source).toBe("alpoxdev/hypercore");
       expect(globalLock.skills["git-maker"].skillFolderHash).toBeTruthy();
       expect(runSkills(root, ["update", "git-maker", "-g", "-y"]).exitCode).toBe(0);
       const globalLockAfterUpdate = JSON.parse(readFileSync(globalLockPath, "utf8"));
