@@ -22,12 +22,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alpoxdev/hypercore-skills.git",
+    "url": "git+https://github.com/alpoxdev/hypercore.git",
     "directory": "cli/packages/color"
   },
-  "homepage": "https://github.com/alpoxdev/hypercore-skills/tree/main/cli/packages/color",
+  "homepage": "https://github.com/alpoxdev/hypercore/tree/main/cli/packages/color",
   "bugs": {
-    "url": "https://github.com/alpoxdev/hypercore-skills/issues"
+    "url": "https://github.com/alpoxdev/hypercore/issues"
   },
   "license": "MIT",
   "scripts": {
