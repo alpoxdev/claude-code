@@ -11,6 +11,7 @@ Record:
 - directories covered by each candidate instruction file
 - files and actions explicitly excluded
 - output language and whether `CLAUDE.md` was explicitly requested or locally required
+- whether a long governing `AGENTS.md` needs adjacent `rules/*.md`, and whether an existing `rules/` directory already has a conflicting purpose
 - **which agent runtimes the repository targets**, since this decides required output files
 
 Do not expand from one root `AGENTS.md` into nested or runtime-specific files without evidence of a real scope difference.
@@ -41,6 +42,7 @@ For every proposed instruction, record the supporting path and status:
 | Generated or forbidden files | Generator header, ignore file, docs | confirmed / ambiguous | Add a prohibition only when evidenced |
 | Architecture boundary | Imports, configs, local docs | confirmed / contested | Preserve conflict or omit unsupported claim |
 | Nested scope need | Different subtree commands/conventions | justified / unjustified | Create nested file only when justified |
+| Same-scope rule-file split | Long or conditionally relevant detail after the admission test | justified / unjustified | Use adjacent `rules/*.md` only when direct conditional links preserve the core contract |
 | Target runtimes | Existing instruction files, CI agent jobs, editor/tool config, user statement | confirmed / assumed | Claude Code target requires a `CLAUDE.md` path |
 
 Never infer a command solely from a package manager's conventional defaults.
@@ -67,7 +69,7 @@ For refactor or reconcile mode, classify each existing rule:
 
 - `keep`: correct, project-specific, and still observable
 - `tighten`: valid intent but vague scope or verifier
-- `move`: correct but belongs in a nested scope or runtime adapter
+- `move`: correct but belongs in a nested scope, adjacent conditional rule file, or runtime adapter
 - `deduplicate`: repeated elsewhere with the same authority
 - `remove`: stale, contradicted, generic, or unsafe
 - `block`: conflict cannot be resolved from local authority or evidence
@@ -90,4 +92,5 @@ Preserve restrictive safety and scope rules until their replacement is proven at
 - [ ] Representative source/test structure was inspected.
 - [ ] Each candidate rule has evidence, uncertainty, or an explicit omission.
 - [ ] Nested files and `CLAUDE.md` have a demonstrated placement reason.
+- [ ] Any adjacent `rules/*.md` output has a demonstrated same-scope placement reason, a non-conflicting directory, and a direct read condition from the governing `AGENTS.md`.
 - [ ] Target runtimes are recorded as confirmed or assumed, and a Claude Code target has a `CLAUDE.md` path decided.

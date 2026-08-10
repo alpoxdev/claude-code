@@ -10,6 +10,7 @@
 | 하나의 command, path, scope rule 변경 | targeted |
 | 새 root 또는 nested `AGENTS.md` | standard |
 | `AGENTS.md`와 `CLAUDE.md` 조정 | standard |
+| 긴 `AGENTS.md` 또는 분리한 지원 규칙 | standard |
 | Credentials, deployment, production, destructive, publication behavior | high-stakes |
 
 새 skill output은 기본적으로 `standard`를 사용한다. Consequential side effect가 있으면 depth를 높인다. 파일이 짧다는 이유로 depth를 낮추지 않는다.
@@ -44,6 +45,9 @@
 - Root와 가장 깊은 nested 경로의 합산 크기가 32 KiB 아래에 여유를 남긴다.
 - `AGENTS.md`와 `CLAUDE.md` 본문이 영어이고, `AGENTS.ko.md`가 존재하며 완전한 한국어다.
 - `AGENTS.ko.md`가 `AGENTS.md`와 섹션 단위로 대응하고, 번역 누락이나 한쪽에만 있는 규칙이 없다.
+- 인접한 모든 `rules/*.md` 파일을 관할 `AGENTS.md`에서 구체적인 읽기 조건과 함께 직접 링크한다. 해당 파일을 열지 않아도 관할 core가 안전하고 실행 가능하다.
+- 선택한 `rules/` 디렉터리에 에이전트 정책과 제품 코드, 생성 파일, 또는 무관한 기존 목적을 섞지 않는다.
+- `AGENTS.md`의 영어 규칙 링크와 `AGENTS.ko.md`의 한국어 미러 링크가 의미상 정렬된 파일로 해석된다.
 
 ## 4. 근거 검사
 
@@ -70,7 +74,7 @@ Executable configuration이 반박할 때 오래된 prose에 command string이 �
 | Runtime coverage | 명시된 모든 대상 런타임이 실제로 읽는 파일을 받음 |
 | Admission | 각 줄이 비자명하고, 하중이 있고, 지속적이며, 권고 산문에 적합함 |
 | Safety | Consequential action은 explicit authorization이 필요하고 normal local work는 가능함 |
-| Maintainability | Rule마다 canonical home이 하나이며 detail은 복제하지 않고 연결함 |
+| Maintainability | 각 규칙의 정본 위치가 하나이며 세부 내용은 중복하지 않고 링크한다. 같은 범위의 조건부 세부 내용은 항상 로드되는 계약을 숨기지 않는 인접 `rules/*.md`를 사용할 수 있다 |
 | Completion | Verification command와 blocker/caveat reporting이 명시적임 |
 
 Critical criterion은 project specificity, scope, authority, safety, command/path grounding, runtime coverage다.
@@ -86,7 +90,8 @@ Critical criterion은 project specificity, scope, authority, safety, command/pat
 - **Unsafe action**: credentials, deployment, publication, production, destructive step에 gate 유지.
 - **Portability**: nested file이 부모가 concatenate되는 경우(Codex, Claude Code, Cursor)와 nearest-wins로 대체되는 경우(Copilot) 모두에서 옳음.
 - **Runtime coverage**: Claude Code를 대상으로 하는 저장소가 공백 보고와 전략 제안 없이 `AGENTS.md`만 있는 결과를 내보내지 않음.
-- **Regression**: root/nested duplication, 추측한 package-manager command, 요청하지 않은 `CLAUDE.md` 생성, 부모를 부정하는 nested 표현, 무제한 root 확장이 없음.
+- **Progressive disclosure**: 지나치게 긴 root는 admission-test 삭제를 먼저 적용한 뒤 같은 범위의 조건부 세부 내용을 직접 링크된 인접 `rules/*.md`로 분리한다. 임의의 규칙 파일이 자동 로드된다고 가정하지 않는다.
+- **Regression**: root/nested duplication, 추측한 package-manager command, 요청하지 않은 `CLAUDE.md` 생성, 부모를 부정하는 nested 표현, 무제한 root 증가, 모호한 “rules/ 참고” 안내, 규칙 파일에 숨긴 필수 계약, 규칙 디렉터리 충돌이 없다.
 
 이 skill package의 재사용 baseline으로 `assets/evals/agent-md-maker-cases.jsonl`을 사용한다.
 
@@ -136,4 +141,5 @@ node skills/skill-tester/scripts/validate-skills-corpus.mjs --root skills --only
 - `assets/evals/agent-md-maker-cases.jsonl`의 모든 line을 JSON으로 parse
 - unique id와 positive, negative, boundary, workflow-failure, adversarial, safety, bilingual, regression coverage 확인
 - 영어/한국어 Markdown pair가 존재하고 equivalent modal strength를 유지하는지 확인
+- 생성한 모든 `rules/*.md`에 하나의 책임, 직접적인 조건부 링크, core 계약 누락 없음, 의미상 정렬된 필수 한국어 미러가 있는지 확인
 - package 내부에 stray `README.md`, `CHANGELOG.md`, `QUICK_REFERENCE.md`가 없는지 확인

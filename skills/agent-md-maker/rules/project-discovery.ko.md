@@ -11,6 +11,7 @@
 - 각 candidate instruction file이 적용되는 directory
 - 명시적으로 제외된 file과 action
 - output language와 `CLAUDE.md`가 명시적으로 요청됐는지 또는 로컬에서 요구되는지
+- 긴 관할 `AGENTS.md`에 인접한 `rules/*.md`가 필요한지와 기존 `rules/` 디렉터리가 이미 충돌하는 목적으로 쓰이는지
 - **저장소가 대상으로 하는 에이전트 런타임** — 필수 산출 파일을 결정한다
 
 실제 scope 차이의 근거 없이 루트 `AGENTS.md` 하나를 nested/runtime-specific file로 확장하지 않는다.
@@ -41,6 +42,7 @@
 | Generated 또는 forbidden file | Generator header, ignore file, docs | confirmed / ambiguous | 근거가 있을 때만 금지 추가 |
 | Architecture boundary | Imports, configs, local docs | confirmed / contested | conflict를 보존하거나 unsupported claim 생략 |
 | Nested scope 필요성 | Subtree별 command/convention 차이 | justified / unjustified | 정당할 때만 nested file 생성 |
+| 같은 범위의 규칙 파일 분리 | admission test 뒤에도 남은 길거나 조건부로 관련된 세부 내용 | justified / unjustified | 직접적인 조건부 링크가 core 계약을 보존할 때만 인접 `rules/*.md` 사용 |
 | 대상 런타임 | 기존 instruction file, CI agent job, 에디터/도구 설정, 사용자 진술 | confirmed / assumed | Claude Code가 대상이면 `CLAUDE.md` 경로 필요 |
 
 Package manager의 일반적인 default만으로 command를 추론하지 않는다.
@@ -67,7 +69,7 @@ Package manager의 일반적인 default만으로 command를 추론하지 않는�
 
 - `keep`: 올바르고 project-specific이며 계속 관찰 가능
 - `tighten`: intent는 유효하지만 scope 또는 verifier가 모호
-- `move`: 올바르지만 nested scope 또는 runtime adapter에 속함
+- `move`: 올바르지만 nested scope, 인접한 조건부 규칙 파일, runtime adapter 중 하나에 속함
 - `deduplicate`: 같은 authority로 다른 곳에 반복
 - `remove`: stale, contradicted, generic, unsafe
 - `block`: local authority나 evidence로 conflict를 해결할 수 없음
@@ -90,4 +92,5 @@ Package manager의 일반적인 default만으로 command를 추론하지 않는�
 - [ ] 대표 source/test structure를 조사했다.
 - [ ] 각 candidate rule에 evidence, uncertainty, explicit omission 중 하나가 있다.
 - [ ] nested file과 `CLAUDE.md`에 입증된 placement reason이 있다.
+- [ ] 인접한 `rules/*.md` 산출물에 같은 범위라는 배치 근거, 충돌하지 않는 디렉터리, 관할 `AGENTS.md`의 직접 읽기 조건이 있다.
 - [ ] 대상 런타임이 confirmed 또는 assumed로 기록되었고, Claude Code가 대상이면 `CLAUDE.md` 경로가 결정되었다.

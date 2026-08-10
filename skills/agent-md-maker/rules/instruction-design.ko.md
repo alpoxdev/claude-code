@@ -12,6 +12,7 @@
 | 사용자를 위한 루트 계약의 한국어판 | `AGENTS.ko.md`, 완전 번역 |
 | Subtree-only command, convention, restriction | 정당한 가장 가까운 nested `AGENTS.md` |
 | 공유 상세 방법론 | 연결된 기존 `instructions/` 또는 project docs |
+| 긴 core에서 분리한 같은 범위의 조건부 정책 | 읽기 조건과 함께 직접 링크한 인접 `rules/*.md` |
 | Claude-only runtime behavior | Claude Code가 대상일 때 필수인 `CLAUDE.md` companion |
 | 개인 선호 | gitignore된 `CLAUDE.local.md` |
 | Generic explanation과 long example | Root instruction이 아닌 기존 docs |
@@ -187,6 +188,7 @@ Task가 source provenance, applicable version, verification date를 요구하고
 - Root file에 alias나 historical note를 남기지 말고 stale command를 제거한다.
 - Duplication을 canonical rule과 direct loading cue로 대체한다.
 - Subtree가 다른 command, ownership, generated boundary, language, architecture를 가질 때만 nested file로 분리한다.
+- 삭제 뒤에도 남은 같은 범위의 조건부 세부 내용은 인접한 `rules/*.md`로 분리한다. 항상 로드되어야 하는 필수 계약 필드는 `AGENTS.md`에 유지하고 `rule-file-splitting.ko.md`를 따른다.
 - Root instruction file을 `README.md`, contribution docs, architecture docs, 전체 `instructions/` base의 복사본으로 만들지 않는다.
 
 ## 7. 안전 계약
@@ -214,6 +216,7 @@ Normal local read, 사용자가 명시적으로 요청한 scoped edit, project-s
 - [ ] Claude Code가 대상 런타임이면 `CLAUDE.md`가 파일, 심볼릭 링크, 또는 `@AGENTS.md` import로 존재한다.
 - [ ] `@path` import가 4 hop 이내이며 import한 파일 기준 상대 경로로 해석된다.
 - [ ] 32 KiB 합산 예산에서 root file이 nested file 몫을 남긴다.
+- [ ] 인접한 규칙 파일은 읽기 조건과 함께 직접 링크되며 항상 로드되는 계약을 숨기지 않는다.
 - [ ] 개인 선호가 공유 계약이 아니라 gitignore된 로컬 파일에 있다.
 - [ ] Runtime-specific behavior가 격리되고 capability gate를 가진다.
 - [ ] Safety restriction이 ordinary local work는 막지 않으면서 consequential effect를 차단한다.

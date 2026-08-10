@@ -10,6 +10,7 @@
 | One command, path, or scope rule changed | targeted |
 | New root or nested `AGENTS.md` | standard |
 | Reconciliation across `AGENTS.md` and `CLAUDE.md` | standard |
+| Long `AGENTS.md` or extracted support rules | standard |
 | Credentials, deployment, production, destructive, or publication behavior | high-stakes |
 
 New skill outputs default to `standard`. Increase depth for consequential side effects; never reduce depth because the file is short.
@@ -44,6 +45,9 @@ Record:
 - The combined size of root plus deepest nested path leaves headroom under 32 KiB.
 - `AGENTS.md` and `CLAUDE.md` prose is English; `AGENTS.ko.md` exists and is fully Korean.
 - `AGENTS.ko.md` matches `AGENTS.md` section for section, with no untranslated leftovers and no rule present in only one of them.
+- Every adjacent `rules/*.md` file is directly linked from the governing `AGENTS.md` with a specific read condition; the governing core remains safe and actionable without opening it.
+- The selected `rules/` directory does not mix agent policy with product code, generated files, or an unrelated established purpose.
+- English rule links from `AGENTS.md` and Korean mirror links from `AGENTS.ko.md` resolve to semantically aligned files.
 
 ## 4. Evidence Checks
 
@@ -70,7 +74,7 @@ A command string merely appearing in old prose is insufficient when executable c
 | Runtime coverage | Every stated target runtime actually receives a file it reads |
 | Admission | Each line is non-obvious, load-bearing, durable, and appropriate for advisory prose |
 | Safety | Consequential actions need explicit authorization while normal local work remains possible |
-| Maintainability | One canonical home per rule; detail is linked instead of duplicated |
+| Maintainability | One canonical home per rule; detail is linked instead of duplicated; same-scope conditional detail may use adjacent `rules/*.md` without hiding the always-loaded contract |
 | Completion | Verification commands and blocker/caveat reporting are explicit |
 
 Critical criteria are project specificity, scope, authority, safety, command/path grounding, and runtime coverage.
@@ -86,7 +90,8 @@ Run or manually inspect at least these behaviors for new files:
 - **Unsafe action**: credentials, deployment, publication, production, and destructive steps remain gated.
 - **Portability**: a nested file stays correct whether the parent is concatenated (Codex, Claude Code, Cursor) or replaced by nearest-wins (Copilot).
 - **Runtime coverage**: a repository targeting Claude Code does not ship an `AGENTS.md`-only result without the gap being reported and a strategy offered.
-- **Regression**: root/nested duplication, guessed package-manager commands, unsolicited `CLAUDE.md` creation, parent-negating nested phrasing, and unbounded root growth remain absent.
+- **Progressive disclosure**: an overlong root is reduced by admission-test deletion first, then same-scope conditional detail is split into directly linked adjacent `rules/*.md`; arbitrary rule files are never assumed to auto-load.
+- **Regression**: root/nested duplication, guessed package-manager commands, unsolicited `CLAUDE.md` creation, parent-negating nested phrasing, unbounded root growth, vague “see rules/” navigation, essential contract hidden in rule files, and rule-directory collisions remain absent.
 
 Use `assets/evals/agent-md-maker-cases.jsonl` as this skill package's reusable baseline.
 
@@ -136,4 +141,5 @@ Additionally:
 - parse every line of `assets/evals/agent-md-maker-cases.jsonl` as JSON
 - confirm unique ids and positive, negative, boundary, workflow-failure, adversarial, safety, bilingual, and regression coverage
 - confirm English/Korean Markdown pairs exist and preserve equivalent modal strength
+- confirm every generated `rules/*.md` has one responsibility, a direct conditional link, no core-contract leakage, and the required semantically aligned Korean mirror
 - confirm no stray `README.md`, `CHANGELOG.md`, or `QUICK_REFERENCE.md` exists inside the package

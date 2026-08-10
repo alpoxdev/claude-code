@@ -12,6 +12,7 @@ Use one canonical home per rule:
 | Korean rendering of the root contract for the user | `AGENTS.ko.md`, fully translated |
 | Subtree-only commands, conventions, or restrictions | Closest justified nested `AGENTS.md` |
 | Shared detailed methodology | Existing linked `instructions/` or project docs |
+| Same-scope conditional policy split from a long core | Adjacent `rules/*.md`, directly linked with a read condition |
 | Claude-only runtime behavior | Explicitly requested `CLAUDE.md` companion |
 | Generic explanations and long examples | Existing docs, not root instructions |
 
@@ -186,6 +187,7 @@ For each path:
 - Remove stale commands rather than keeping aliases or historical notes in the root file.
 - Replace duplication with a canonical rule plus a direct loading cue.
 - Split nested files only when a subtree has different commands, ownership, generated boundaries, language, or architecture.
+- After deletion, split same-scope conditional detail into adjacent `rules/*.md`; keep essential always-loaded contract fields in `AGENTS.md` and follow `rule-file-splitting.md`.
 - Do not turn the root instruction file into a copy of `README.md`, contribution docs, architecture docs, or the entire `instructions/` base.
 
 ## 7. Safety Contract
@@ -213,6 +215,7 @@ Normal local reads, scoped edits explicitly requested by the user, and project-s
 - [ ] If Claude Code is a target runtime, `CLAUDE.md` exists as a file, symlink, or `@AGENTS.md` import.
 - [ ] `@path` imports stay within four hops and resolve relative to the importing file.
 - [ ] The root file leaves headroom for nested files under a 32 KiB combined budget.
+- [ ] Any adjacent rule files are directly linked with read conditions and do not hide the always-loaded contract.
 - [ ] Personal preferences live in a gitignored local file, not the shared contract.
 - [ ] Runtime-specific behavior is isolated and capability-gated.
 - [ ] Safety restrictions block consequential effects without blocking ordinary local work.
