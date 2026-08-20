@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentplugins.dev/schemas/v1.0.0/mcp.schema.json",
+  "title": "Agent Plugins v1.0.0 MCP manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "servers", "version"],
+  "properties": {
+    "$schema": { "const": "https://agentplugins.dev/schemas/v1.0.0/mcp.schema.json" },
+    "servers": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/server" },
+      "propertyNames": { "$ref": "#/$defs/serverName" }
+    },
+    "version": { "$ref": "#/$defs/semanticVersion" }
+  },
+  "$defs": {
+    "httpServer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transport", "url"],
+      "properties": {
+        "headers": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1, "pattern": "^[^\\r\\n]*$" },
+          "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9-]*$" }
+        },
+        "transport": { "enum": ["http", "streamable-http", "sse"] },
+        "url": { "type": "string", "format": "uri", "pattern": "^https?://[^/?#@]+(?:/[^?#]*)?(?:\\?[^#]*)?$" }
+      }
+    },
+    "semanticVersion": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$" },
+    "server": { "oneOf": [{ "$ref": "#/$defs/stdioServer" }, { "$ref": "#/$defs/httpServer" }] },
+    "serverName": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+    "stdioServer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["args", "command", "transport"],
+      "properties": {
+        "args": { "type": "array", "items": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000\\r\\n]*$" } },
+        "command": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9._/-]+$" },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1, "pattern": "^[^\\r\\n]*$" },
+          "propertyNames": { "pattern": "^[A-Z][A-Z0-9_]*$" }
+        },
+        "transport": { "const": "stdio" }
+      }
+    }
+  }
+}

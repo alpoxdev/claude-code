@@ -2,11 +2,12 @@
   "schemaVersion": 1,
   "requiredBy": "scripts/fixtures/skill-script-parity/manifest.json",
   "coverage": {
-    "expectedRows": 30,
+    "expectedRows": 32,
     "legacyOriginCounts": {
       "former-sh": 20,
       "former-py": 1,
-      "retained-mjs": 9
+      "retained-mjs": 9,
+      "authored-mjs": 2
     },
     "requiredDimensions": [
       "stdout",
@@ -22,7 +23,8 @@
       "happy",
       "malformed",
       "familyEdge"
-    ]
+    ],
+    "expectedFixtures": 96
   },
   "rows": [
     {
@@ -1484,6 +1486,392 @@
         "cwd": "git-worktree--validate-git-worktree-skill--cwd",
         "env": "git-worktree--validate-git-worktree-skill--env",
         "argv": "git-worktree--validate-git-worktree-skill--argv"
+      }
+    },
+    {
+      "id": "hermes-agent-maker--generate",
+      "path": "skills/hermes-agent-maker/scripts/generate.mjs",
+      "family": "hermes-agent-maker",
+      "legacyOrigin": "authored-mjs",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/hermes-agent-maker/scripts/generate.mjs",
+          "absent": true
+        }
+      },
+      "dimensions": {
+        "stdout": true,
+        "stderr": true,
+        "exit": true,
+        "files": true,
+        "modes": true,
+        "cwd": true,
+        "env": true,
+        "argv": true
+      },
+      "fixtures": {
+        "happy": {
+          "scenario": "happy",
+          "command": {
+            "executable": "bun",
+            "arguments": [
+              "skills/hermes-agent-maker/scripts/generate.mjs"
+            ]
+          },
+          "input": {
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--manifest",
+              "spec.json",
+              "--workspace",
+              "."
+            ],
+            "files": [
+              {
+                "path": "spec.json",
+                "text": "{\"kind\":\"skill\",\"intent\":\"artifact:generator\",\"content\":\"Create a reviewed fixture skill.\",\"target\":\"fixture-skill\",\"name\":\"fixture-skill\",\"mode\":\"preview\",\"template_version\":\"1.0.0\"}"
+              }
+            ]
+          },
+          "expected": {
+            "stdout": {
+              "contains": [
+                "\"kind\":\"skill\"",
+                "\"target_identity\":\"fixture-skill\"",
+                "\"preview_id\"",
+                "\"approval_digest\""
+              ]
+            },
+            "stderr": {
+              "equals": ""
+            },
+            "exit": 0,
+            "files": [
+              {
+                "path": "spec.json",
+                "bytes": 183,
+                "sha256": "f708c0392c460a05392f38a353a6b8c72b43c378be4c9928db8f04fa56655e5b"
+              }
+            ],
+            "modes": {
+              "spec.json": "644"
+            },
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--manifest",
+              "spec.json",
+              "--workspace",
+              "."
+            ]
+          }
+        },
+        "malformed": {
+          "scenario": "malformed",
+          "command": {
+            "executable": "bun",
+            "arguments": [
+              "skills/hermes-agent-maker/scripts/generate.mjs"
+            ]
+          },
+          "input": {
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--manifest",
+              "missing.json",
+              "--workspace",
+              "."
+            ],
+            "files": []
+          },
+          "expected": {
+            "stdout": {
+              "equals": ""
+            },
+            "stderr": {
+              "equals": "{\"error\":\"E_JSON\"}\n"
+            },
+            "exit": 1,
+            "files": [],
+            "modes": {},
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--manifest",
+              "missing.json",
+              "--workspace",
+              "."
+            ]
+          }
+        },
+        "familyEdge": {
+          "scenario": "familyEdge",
+          "command": {
+            "executable": "bun",
+            "arguments": [
+              "skills/hermes-agent-maker/scripts/generate.mjs"
+            ]
+          },
+          "input": {
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--manifest",
+              "spec.json",
+              "--workspace",
+              "."
+            ],
+            "files": [
+              {
+                "path": "spec.json",
+                "text": "{\"kind\":\"skill\",\"intent\":\"artifact:generator\",\"content\":\"Create a reviewed fixture skill.\",\"target\":\"fixture-skill\",\"name\":\"fixture-skill\",\"mode\":\"apply\",\"template_version\":\"1.0.0\",\"approved_change_set\":{}}"
+              }
+            ]
+          },
+          "expected": {
+            "stdout": {
+              "equals": ""
+            },
+            "stderr": {
+              "equals": "{\"error\":\"E_APPROVAL_MISMATCH\"}\n"
+            },
+            "exit": 1,
+            "files": [
+              {
+                "path": "spec.json",
+                "bytes": 206,
+                "sha256": "5910aca78b977184c16066b6ef095199cfa7fdb02fd932ce87afa05980b924e4"
+              }
+            ],
+            "modes": {
+              "spec.json": "644"
+            },
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--manifest",
+              "spec.json",
+              "--workspace",
+              "."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "hermes-agent-maker--validate-portable-v1-output",
+      "path": "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs",
+      "family": "hermes-agent-maker",
+      "legacyOrigin": "authored-mjs",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs",
+          "absent": true
+        }
+      },
+      "dimensions": {
+        "stdout": true,
+        "stderr": true,
+        "exit": true,
+        "files": true,
+        "modes": true,
+        "cwd": true,
+        "env": true,
+        "argv": true
+      },
+      "fixtures": {
+        "happy": {
+          "scenario": "happy",
+          "command": {
+            "executable": "bun",
+            "arguments": [
+              "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs"
+            ]
+          },
+          "input": {
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--root",
+              "."
+            ],
+            "files": [
+              {
+                "path": "plugin.json",
+                "text": "{\"$schema\":\"https://agentplugins.dev/schemas/v1.0.0/plugin.schema.json\",\"name\":\"fixture-plugin\",\"version\":\"1.0.0\",\"description\":\"Fixture plugin\",\"components\":{\"skills\":[\"skills/fixture\"]}}"
+              },
+              {
+                "path": "skills/fixture/SKILL.md",
+                "text": "---\nname: fixture\ndescription: Fixture portable skill.\n---\n\n# Fixture\n"
+              }
+            ]
+          },
+          "expected": {
+            "stdout": {
+              "contains": [
+                "\"valid\":true",
+                "\"profile\":\"agent-plugins-v1.0.0+hermes\""
+              ]
+            },
+            "stderr": {
+              "equals": ""
+            },
+            "exit": 0,
+            "files": [
+              {
+                "path": "plugin.json",
+                "bytes": 188,
+                "sha256": "2ce941b4feb0a94b5d41a369d6cd1dd278a0487a00f895bd44155977bf6c778f"
+              },
+              {
+                "path": "skills/fixture/SKILL.md",
+                "bytes": 70,
+                "sha256": "a89ed62f04afb69e05f7abfe5f7bdfb885b1d591a8f98853d2152cb7af87e80e"
+              }
+            ],
+            "modes": {
+              "plugin.json": "644",
+              "skills/fixture/SKILL.md": "644"
+            },
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--root",
+              "."
+            ]
+          }
+        },
+        "malformed": {
+          "scenario": "malformed",
+          "command": {
+            "executable": "bun",
+            "arguments": [
+              "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs"
+            ]
+          },
+          "input": {
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--root",
+              "."
+            ],
+            "files": []
+          },
+          "expected": {
+            "stdout": {
+              "equals": ""
+            },
+            "stderr": {
+              "equals": "{\"error\":\"E_REFERENCE\"}\n"
+            },
+            "exit": 1,
+            "files": [],
+            "modes": {},
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--root",
+              "."
+            ]
+          }
+        },
+        "familyEdge": {
+          "scenario": "familyEdge",
+          "command": {
+            "executable": "bun",
+            "arguments": [
+              "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs"
+            ]
+          },
+          "input": {
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--root",
+              "."
+            ],
+            "files": [
+              {
+                "path": "plugin.json",
+                "text": "{\"$schema\":\"https://agentplugins.dev/schemas/v1.0.0/plugin.schema.json\",\"name\":\"fixture-plugin\",\"version\":\"1.0.0\",\"description\":\"Fixture plugin\",\"components\":{\"skills\":[\"skills/fixture\"],\"mcp\":[\"mcp/fixture.json\"]}}"
+              },
+              {
+                "path": "skills/fixture/SKILL.md",
+                "text": "---\nname: fixture\ndescription: Fixture portable skill.\n---\n\n# Fixture\n"
+              },
+              {
+                "path": "mcp/fixture.json",
+                "text": "{\"$schema\":\"https://agentplugins.dev/schemas/v1.0.0/mcp.schema.json\",\"servers\":{\"fixture\":{\"transport\":\"sse\",\"url\":\"http://127.0.0.1:3000\"}},\"version\":\"1.0.0\"}"
+              }
+            ]
+          },
+          "expected": {
+            "stdout": {
+              "equals": ""
+            },
+            "stderr": {
+              "equals": "{\"error\":\"E_HERMES_SUBSET\"}\n"
+            },
+            "exit": 1,
+            "files": [
+              {
+                "path": "plugin.json",
+                "bytes": 215,
+                "sha256": "897492ad8f81b4dc60cc25351556a0249cb5e39aee35a1f95ebc764899411264"
+              },
+              {
+                "path": "skills/fixture/SKILL.md",
+                "bytes": 70,
+                "sha256": "a89ed62f04afb69e05f7abfe5f7bdfb885b1d591a8f98853d2152cb7af87e80e"
+              },
+              {
+                "path": "mcp/fixture.json",
+                "bytes": 159,
+                "sha256": "aaae11b9d009d4e17665e40ff635a5e0b5d6e0311a7bd45be69fd0d02a86b131"
+              }
+            ],
+            "modes": {
+              "plugin.json": "644",
+              "skills/fixture/SKILL.md": "644",
+              "mcp/fixture.json": "644"
+            },
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--root",
+              "."
+            ]
+          }
+        }
       }
     },
     {

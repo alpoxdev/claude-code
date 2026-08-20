@@ -1,0 +1,45 @@
+{
+  "template_version": "1.0.0",
+  "artifacts": {
+    "agents": {
+      "files": [
+        { "path": "AGENTS.md", "mode": 420, "content": "# Project guidance\n\nPurpose: An agent skill.\n\nKeep changes within the requested workspace and inspect affected files before editing. Preserve established conventions, state assumptions that affect behavior, and use focused local verification for changed behavior. Keep project guidance separate from durable user preferences and agent identity.\n" }
+      ]
+    },
+    "memory-draft": {
+      "files": [
+        { "path": "MEMORY.md.draft.md", "mode": 420, "content": "# Durable memory proposal\n\nPurpose: An agent skill.\n\nProposed memory: This intent should be handled with an explicit review of accuracy, relevance, and retention scope.\n\nRationale: The proposed memory records a stable working preference rather than a temporary task detail.\n\nReview each statement before manually recording it as durable memory. This draft changes no active memory.\n" }
+      ]
+    },
+    "native-plugin": {
+      "files": [
+        { "path": "__init__.py", "mode": 420, "content": "\"\"\"agent-plugin native plugin.\"\"\"\n\nfrom .tools import register\n\n__all__ = [\"register\"]\n" },
+        { "path": "plugin.yaml", "mode": 420, "content": "name: agent-plugin\nversion: 1.0.0\nentrypoint: tools:register\nsummary: An agent skill.\ntools:\n  - agent-plugin.respond\n" },
+        { "path": "schemas.py", "mode": 420, "content": "REQUEST_SCHEMA = {\n    \"type\": \"object\",\n    \"description\": \"Return a concise local response for the declared intent.\",\n    \"additionalProperties\": False,\n    \"properties\": {\n        \"request\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 2000}\n    },\n    \"required\": [\"request\"],\n}\n" },
+        { "path": "tools.py", "mode": 420, "content": "import json\n\nfrom .schemas import REQUEST_SCHEMA\n\nPLUGIN_NAME = \"agent-plugin\"\nPLUGIN_INTENT = \"An agent skill.\"\n\ndef handle(arguments, **kwargs):\n    del kwargs\n    try:\n        request = arguments[\"request\"]\n        if not isinstance(request, str):\n            raise ValueError(\"request must be text\")\n        value = request.strip()\n        if not value or len(value) > 2000:\n            raise ValueError(\"request must contain 1 to 2000 characters\")\n        return json.dumps({\"intent\": PLUGIN_INTENT, \"result\": f\"{PLUGIN_NAME}: {value}\"}, ensure_ascii=False)\n    except (KeyError, TypeError, ValueError) as error:\n        return json.dumps({\"error\": str(error)}, ensure_ascii=False)\n\ndef register(ctx):\n    ctx.register_tool(\n        name=f\"{PLUGIN_NAME}.respond\",\n        toolset=PLUGIN_NAME,\n        schema=REQUEST_SCHEMA,\n        handler=handle,\n    )\n" }
+      ]
+    },
+    "portable-plugin": {
+      "files": [
+        { "path": "plugin.json", "mode": 420, "content": "{\n  \"$schema\": \"https://agentplugins.dev/schemas/v1.0.0/plugin.schema.json\",\n  \"components\": {\n    \"skills\": [\"skills/agent-plugin\"]\n  },\n  \"description\": \"An agent skill.\",\n  \"name\": \"agent-plugin\",\n  \"version\": \"1.0.0\"\n}\n" },
+        { "path": "skills/agent-plugin/SKILL.md", "mode": 420, "content": "---\nname: agent-plugin\ndescription: An agent skill.\n---\n\n# agent-plugin\n\nPurpose: An agent skill.\n\nUse this packaged skill to guide a focused local workflow. Gather the relevant facts, state the bounded decision, and produce a concrete result that matches the declared purpose. Preserve user control over changes.\n" }
+      ]
+    },
+    "skill": {
+      "files": [
+        { "path": "SKILL.ko.md", "mode": 420, "content": "---\nname: agent-skill\ndescription: An agent skill.\n---\n\n# agent-skill\n\n목적: An agent skill.\n\n관련 사실을 먼저 확인하고, 필요한 결정은 한 번에 하나씩 명확히 합니다. 변경이 필요한 경우 범위와 예상 결과를 제시한 뒤 승인된 변경만 적용합니다. 결과에는 근거와 확인 방법을 포함합니다.\n" },
+        { "path": "SKILL.md", "mode": 420, "content": "---\nname: agent-skill\ndescription: An agent skill.\n---\n\n# agent-skill\n\nPurpose: An agent skill.\n\nInspect the relevant facts first and make one necessary decision at a time. When a change is needed, state its scope and expected result, then apply only the approved change. Include evidence and a focused way to verify the result.\n" }
+      ]
+    },
+    "soul": {
+      "files": [
+        { "path": "SOUL.md", "mode": 420, "content": "# Identity and tone\n\nPurpose: An agent skill.\n\nBe calm, precise, and honest. Explain trade-offs plainly, distinguish confirmed facts from assumptions, and protect user control. Prefer direct, useful answers and acknowledge uncertainty without inventing certainty.\n" }
+      ]
+    },
+    "user-draft": {
+      "files": [
+        { "path": "USER.md.draft.md", "mode": 420, "content": "# User profile proposal\n\nPurpose: An agent skill.\n\nProposed preference: The user wants work on this intent to be reviewed for accuracy and scope before it is retained.\n\nRationale: This preference supports clear, user-directed outcomes.\n\nReview the statement for accuracy and consent before manually recording it in an active profile. This draft changes no active profile.\n" }
+      ]
+    }
+  }
+}

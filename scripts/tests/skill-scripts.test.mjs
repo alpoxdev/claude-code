@@ -3,7 +3,7 @@
 
 /** Exercise the immutable skill-script manifest and harmless Bun subprocess paths. */
 import { createHash } from "node:crypto";
-import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,6 +24,8 @@ const repoDiscoverPath = join(root, "skills/git-maker/scripts/repo-discover.mjs"
 const repoStatusPath = join(root, "skills/git-maker/scripts/repo-status.mjs");
 const gitMakerFastPath = join(root, "skills/git-maker/scripts/git-maker-fast.mjs");
 const legacyPreimageBase = "990359457e2ccbf2bd4bb65065037d456c5940bc";
+const hermesGeneratePath = join(root, "skills/hermes-agent-maker/scripts/generate.mjs");
+const hermesPortableValidatorPath = join(root, "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs");
 
 /** @param {string} text @param {string} cwd */
 function normalizeOutput(text, cwd) {
@@ -90,14 +92,26 @@ function killRecordedPid(pidFile) {
 }
 
 
-test("manifest closes over exactly the approved 30 MJS paths and policy metadata", () => {
+test("manifest centrally inventories 32 scripts including two authored baseline-absent MJS paths", () => {
   const manifest = /** @type {{ scripts: { path: string, family: string, legacyOrigin: string, usage: string, behavior: string }[], forbiddenDetectorReferences: { records: { literal: string, allowedLocations: { file: string, jsonPath: string }[] }[] }, versionUpdateDetectorAbsentCorrection: { detectorRestored: boolean, legacyFiles: { legacyPath: string, sha256: string, gitMode: string, finalPath: string }[], restoreOrder: string[] } }} */ (JSON.parse(readFileSync(manifestPath, "utf8")));
-  expect(manifest.scripts).toHaveLength(30);
-  expect(new Set(manifest.scripts.map((row) => row.path)).size).toBe(30);
+  expect(manifest.scripts).toHaveLength(32);
+  expect(new Set(manifest.scripts.map((row) => row.path)).size).toBe(32);
   expect(manifest.scripts.every((row) => [row.path, row.family, row.legacyOrigin, row.usage, row.behavior].every(Boolean))).toBe(true);
-  expect(manifest.scripts.map((row) => row.path).sort()).toEqual(
-    filesBelow(join(root, "skills")).map((file) => relative(root, file)).sort(),
-  );
+  expect(Object.fromEntries(["former-sh", "former-py", "retained-mjs", "authored-mjs"].map((origin) => [
+    origin,
+    manifest.scripts.filter((row) => row.legacyOrigin === origin).length,
+  ]))).toEqual({ "former-sh": 20, "former-py": 1, "retained-mjs": 9, "authored-mjs": 2 });
+  const authored = [
+    "skills/hermes-agent-maker/scripts/generate.mjs",
+    "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs",
+  ];
+  expect(manifest.scripts.map((row) => row.path).sort()).toEqual(filesBelow(join(root, "skills")).map((file) => relative(root, file)).sort());
+  expect(manifest.scripts.filter((row) => row.legacyOrigin === "authored-mjs").map((row) => row.path).sort()).toEqual(authored);
+  for (const path of authored) {
+    const row = manifest.scripts.find((candidate) => candidate.path === path);
+    expect(row.sourcePreimage.baselineAbsence).toEqual({ baselineRef: legacyPreimageBase, path, absent: true });
+    expect(run(["git", "cat-file", "-e", `${legacyPreimageBase}:${path}`], root).exitCode).not.toBe(0);
+  }
   expect(manifest.forbiddenDetectorReferences.records).toHaveLength(6);
   expect(manifest.forbiddenDetectorReferences.records.every((row) => row.literal && row.allowedLocations.length === 1)).toBe(true);
   expect(manifest.versionUpdateDetectorAbsentCorrection.detectorRestored).toBe(false);
@@ -132,15 +146,17 @@ function materializeFixture(files, cwd) {
   }
 }
 
-test("behavior contracts execute all 90 isolated semantic fixtures with exact observables", () => {
+test("behavior contracts execute all 96 isolated semantic fixtures with exact observables", () => {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const contracts = JSON.parse(readFileSync(contractsPath, "utf8"));
   const dimensions = ["stdout", "stderr", "exit", "files", "modes", "cwd", "env", "argv"];
   expect(contracts.requiredBy).toBe(relative(root, manifestPath));
   expect(manifest.legacyPreimageBase).toBe(legacyPreimageBase);
   expect(contracts.legacyPreimageBase).toBe(legacyPreimageBase);
-  expect(contracts.coverage.expectedRows).toBe(30);
-  expect(contracts.rows).toHaveLength(30);
+  expect(contracts.coverage.expectedRows).toBe(32);
+  expect(contracts.coverage.expectedFixtures).toBe(96);
+  expect(contracts.coverage.legacyOriginCounts).toEqual({ "former-sh": 20, "former-py": 1, "retained-mjs": 9, "authored-mjs": 2 });
+  expect(contracts.rows).toHaveLength(32);
   let cases = 0;
   for (const row of contracts.rows) {
     const manifestRow = manifest.scripts.find((candidate) => candidate.path === row.path);
@@ -184,12 +200,280 @@ test("behavior contracts execute all 90 isolated semantic fixtures with exact ob
     if (["nextjs-architecture", "prompt-maker", "skill-maker", "vite-architecture"].includes(row.family)) {
       expect(new Set(normalizedObservables).size).toBe(3);
     }
-    const source = run(["git", "show", `${manifest.legacyPreimageBase}:${row.sourcePreimage.path}`], root);
-    expect(source.exitCode).toBe(0);
-    expect(createHash("sha256").update(source.stdout).digest("hex")).toBe(row.sourcePreimage.sha256);
+    if (manifestRow.legacyOrigin === "authored-mjs") {
+      expect(row.sourcePreimage.baselineAbsence).toEqual({ baselineRef: legacyPreimageBase, path: row.path, absent: true });
+      expect(run(["git", "cat-file", "-e", `${legacyPreimageBase}:${row.path}`], root).exitCode).not.toBe(0);
+    } else {
+      const source = run(["git", "show", `${manifest.legacyPreimageBase}:${row.sourcePreimage.path}`], root);
+      expect(source.exitCode).toBe(0);
+      expect(createHash("sha256").update(source.stdout).digest("hex")).toBe(row.sourcePreimage.sha256);
+    }
   }
-  expect(cases).toBe(90);
+  expect(cases).toBe(96);
 }, 30_000);
+
+test("Hermes previews are deterministic across all seven artifact kinds and easy-Korean routing cases are mandatory", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "hypercore-hermes-preview-"));
+  try {
+    const generatorSource = readFileSync(hermesGeneratePath, "utf8");
+    expect(generatorSource).toContain("validatePortableV1Documents");
+    expect(generatorSource).not.toContain("mkdtempSync");
+    expect(generatorSource).not.toContain("tmpdir()");
+    const kinds = ["skill", "native-plugin", "portable-plugin", "soul", "agents", "user-draft", "memory-draft"];
+    const fixedTargets = { soul: "SOUL.md", agents: "AGENTS.md", "user-draft": "USER.md.draft.md", "memory-draft": "MEMORY.md.draft.md" };
+    for (const kind of kinds) {
+      const target = fixedTargets[kind] ?? `${kind}-output`;
+      const manifest = {
+        kind,
+        intent: "artifact:generator",
+        content: "Create a safe fixture artifact.",
+        target,
+        name: "fixture-agent",
+        mode: "preview",
+        template_version: "1.0.0",
+      };
+      const manifestPath = join(fixture, `${kind}.json`);
+      writeFileSync(manifestPath, JSON.stringify(manifest));
+      const argv = [process.execPath, hermesGeneratePath, "--manifest", manifestPath, "--workspace", fixture];
+      const first = run(argv, fixture);
+      const second = run(argv, fixture);
+      expect(first.exitCode).toBe(0);
+      expect(second).toEqual(first);
+      const preview = JSON.parse(first.stdout);
+      expect(preview.kind).toBe(kind);
+      expect(preview.changes.length).toBeGreaterThan(0);
+      expect(existsSync(join(fixture, target))).toBe(false);
+    }
+    const evals = readFileSync(join(root, "skills/hermes-agent-maker/assets/evals/hermes-agent-maker-cases.jsonl"), "utf8")
+      .trim().split("\n").map((line) => JSON.parse(line));
+    const evaluator = run([
+      process.execPath,
+      join(root, "skills/skill-maker/scripts/validate-skill-maker.mjs"),
+      "--root", join(root, "skills/hermes-agent-maker"),
+      "--evals", join(root, "skills/hermes-agent-maker/assets/evals/hermes-agent-maker-cases.jsonl"),
+      "--json",
+    ], root);
+    expect(evaluator.exitCode).toBe(0);
+    expect(JSON.parse(evaluator.stdout).ok).toBe(true);
+    const koreanRouting = readFileSync(join(root, "skills/hermes-agent-maker/rules/routing.ko.md"), "utf8");
+    const englishRouting = readFileSync(join(root, "skills/hermes-agent-maker/rules/routing.md"), "utf8");
+    const pairedContract = [
+      readFileSync(join(root, "skills/hermes-agent-maker/SKILL.md"), "utf8"),
+      readFileSync(join(root, "skills/hermes-agent-maker/SKILL.ko.md"), "utf8"),
+      englishRouting,
+      koreanRouting,
+      readFileSync(join(root, "skills/hermes-agent-maker/rules/safety-and-approval.md"), "utf8"),
+      readFileSync(join(root, "skills/hermes-agent-maker/rules/safety-and-approval.ko.md"), "utf8"),
+    ].join("\n");
+    /** @type {Record<string, RegExp[]>} */
+    const expectationEvidence = {
+      "positive-skill-ko": [/skill/u, /쉬운 한국어/u, /preview|미리보기/u, /approval|승인/u, /overwrite|덮어/u, /Discord/u],
+      "positive-native-en": [/native-plugin/u, /normalized|정규화/u, /preview-bound|preview에 묶/u, /install/u, /enable/u],
+      "positive-portable-mixed": [/portable-plugin/u, /Agent Plugins v1\.0\.0/u, /Hermes subset/u, /dynamic schema|동적 schema/u, /\bsse\b/iu],
+      "negative-discord-ko": [/범위 밖|out of scope/u, /별도 작업|separate/u, /Discord/u, /gateway/u, /token/u],
+      "negative-install-en": [/installation|install/u, /enable/u, /profile/u],
+      "boundary-plugin-kind": [/native.*portable|portable.*native/isu, /한 번에 하나|one.*decision/isu, /infer native|추측하지/isu, /combine questions|질문을 합치지/isu],
+      "workflow-preview-approval": [/complete preview|전체 preview/u, /preimage/u, /exact approval|정확한 승인/u, /stale|오래된/u, /before approval|승인 전/u, /scope|범위/u],
+      "source-local-official": [/local|로컬/u, /Agent Plugins v1\.0\.0/u, /provenance|출처/u, /schema fetch|schema.*가져/u, /evidence.*authority|근거.*권한/isu],
+      "safety-memory-draft": [/draft-only/u, /USER\.md\.draft\.md/u, /MEMORY\.md\.draft\.md/u, /apply guidance/u, /active memory|활성.*memory/isu, /credential/u],
+      "adversarial-injected-content": [/reject|거절/u, /safety boundary|안전.*범위/isu, /Discord/u, /token/u, /gateway/u],
+      "regression-bilingual-one-question": [/한 번에 한 결정|one.*decision/isu, /쉬운 한국어/u, /English.*Korean|영어.*한국어/isu, /combine questions|질문을 합치지/isu, /jargon|전문 용어/u],
+    };
+    for (const entry of evals) {
+      expect(typeof entry.prompt).toBe("string");
+      expect(entry.expected.must.length).toBeGreaterThan(0);
+      expect(entry.expected.mustNot.length).toBeGreaterThan(0);
+      const evidence = expectationEvidence[entry.id];
+      expect(evidence.length).toBe(entry.expected.must.length + entry.expected.mustNot.length);
+      for (const pattern of evidence) {
+        if (!pattern.test(pairedContract)) throw new Error(`missing paired-contract evidence for ${entry.id}: ${String(pattern)}`);
+      }
+    }
+    expect(koreanRouting).toContain("preview에 묶인 명시적 approval");
+    expect(englishRouting).toContain("explicit preview-bound approval");
+    for (const route of ["skill", "native-plugin", "portable-plugin", "soul", "agents", "user-draft", "memory-draft"]) {
+      expect(koreanRouting).toContain(`\`${route}\``);
+      expect(englishRouting).toContain(`\`${route}\``);
+    }
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+}, 20_000);
+
+test("Hermes applies every kind only with its exact preview approval, preserves preimages, and rejects unsafe roots", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "hypercore-hermes-apply-"));
+  try {
+    const kinds = ["skill", "native-plugin", "portable-plugin", "soul", "agents", "user-draft", "memory-draft"];
+    const fixedTargets = { soul: "SOUL.md", agents: "AGENTS.md", "user-draft": "USER.md.draft.md", "memory-draft": "MEMORY.md.draft.md" };
+    for (const kind of kinds) {
+      const target = fixedTargets[kind] ?? `${kind}-artifact`;
+      const spec = { kind, intent: "artifact:generator", content: `Create ${kind} content for a reviewed fixture.`, target, name: "fixture-agent", mode: "preview", template_version: "1.0.0" };
+      const specPath = join(fixture, `${kind}.json`);
+      writeFileSync(specPath, JSON.stringify(spec));
+      const preview = run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture);
+      expect(preview.exitCode).toBe(0);
+      const approval = JSON.parse(preview.stdout);
+      expect(approval.files.length).toBeGreaterThan(0);
+      expect(approval.changes.every((change) => change.operation === "create" && change.old_sha256 === null && change.old_mode === null)).toBe(true);
+      spec.mode = "apply";
+      spec.approved_change_set = approval;
+      writeFileSync(specPath, JSON.stringify(spec));
+      expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).exitCode).toBe(0);
+      const output = realpathSync(join(fixture, target));
+      expect(existsSync(output)).toBe(true);
+      if (kind === "skill") {
+        const token = createHash("sha256").update(output).digest("hex").slice(0, 16);
+        const journal = join(dirname(output), `.hermes-agent-maker-journal-${token}.json`);
+        const expected = Object.fromEntries(approval.files.map((file) => [file.path.slice(`${target}/`.length), { sha256: file.sha256, mode: file.mode }]));
+        const authorization = {
+          artifact_id: approval.artifact_id,
+          kind: approval.kind,
+          target_identity: approval.target_identity,
+          template_version: approval.template_version,
+          preview_id: approval.preview_id,
+          approval_digest: approval.approval_digest,
+          changes: approval.changes,
+          files: approval.files,
+          directories: approval.directories,
+          preimage: approval.preimage,
+          mode: approval.mode,
+          transaction_phase: approval.transaction_phase,
+          recovery_disposition: approval.recovery_disposition,
+        };
+        const recovery = {
+          version: 1,
+          directory: true,
+          target_identity: target,
+          target: output,
+          stage: join(dirname(output), `.hermes-agent-maker-stage-${token}-fixture`),
+          backup: `${output}.hermes-backup`,
+          expected,
+          previous: {},
+          authorization,
+        };
+        writeFileSync(journal, JSON.stringify(recovery));
+        const recovered = run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture);
+        expect(recovered.stderr).toBe("");
+        expect(recovered.exitCode).toBe(0);
+        expect(JSON.parse(recovered.stdout)).toMatchObject({ receipt_kind: "apply", mode: "apply", transaction_phase: "committed", recovery_disposition: "completed" });
+        expect(existsSync(journal)).toBe(false);
+        writeFileSync(journal, JSON.stringify(recovery));
+        const changedSpec = { ...spec, content: "Create a different reviewed skill." };
+        writeFileSync(specPath, JSON.stringify(changedSpec));
+        expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stderr).toContain("E_APPROVAL_MISMATCH");
+        expect(existsSync(journal)).toBe(true);
+        writeFileSync(specPath, JSON.stringify(spec));
+        writeFileSync(journal, JSON.stringify({ ...recovery, expected: { ...expected, "SKILL.md": { sha256: "0".repeat(64), mode: 420 } } }));
+        expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stderr).toContain("E_JOURNAL_AUTHORIZATION");
+        rmSync(journal);
+        const updateSpec = { ...spec, content: "Create an updated reviewed skill.", mode: "preview" };
+        delete updateSpec.approved_change_set;
+        writeFileSync(specPath, JSON.stringify(updateSpec));
+        const updateApproval = JSON.parse(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stdout);
+        const updateStage = join(dirname(output), `.hermes-agent-maker-stage-${token}-rollback`);
+        mkdirSync(updateStage);
+        for (const file of updateApproval.files) {
+          const relativePath = file.path.slice(`${target}/`.length);
+          const stagedPath = join(updateStage, relativePath);
+          mkdirSync(dirname(stagedPath), { recursive: true });
+          writeFileSync(stagedPath, Buffer.from(file.content_bytes, "base64"));
+          chmodSync(stagedPath, file.mode);
+        }
+        const updateExpected = Object.fromEntries(updateApproval.files.map((file) => [file.path.slice(`${target}/`.length), { sha256: file.sha256, mode: file.mode }]));
+        const updatePrevious = Object.fromEntries(updateApproval.changes
+          .filter((change) => change.old_sha256 !== null)
+          .map((change) => [change.path.slice(`${target}/`.length), { sha256: change.old_sha256, mode: change.old_mode }]));
+        const updateAuthorization = Object.fromEntries([
+          "artifact_id", "kind", "target_identity", "template_version", "preview_id", "approval_digest", "changes", "files", "directories", "preimage", "mode", "transaction_phase", "recovery_disposition",
+        ].map((key) => [key, updateApproval[key]]));
+        writeFileSync(journal, JSON.stringify({
+          version: 1, directory: true, target_identity: target, target: output, stage: updateStage,
+          backup: `${output}.hermes-backup`, expected: updateExpected, previous: updatePrevious, authorization: updateAuthorization,
+        }));
+        updateSpec.mode = "apply";
+        updateSpec.approved_change_set = updateApproval;
+        writeFileSync(specPath, JSON.stringify(updateSpec));
+        const rolledBack = run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture);
+        expect(rolledBack.exitCode).toBe(0);
+        expect(JSON.parse(rolledBack.stdout)).toMatchObject({ receipt_kind: "apply", transaction_phase: "committed", recovery_disposition: "rolled-back" });
+      }
+      const stale = { ...approval, preview_id: "0".repeat(64) };
+      writeFileSync(join(fixture, "stale.json"), JSON.stringify(stale));
+      expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture, "--approval", join(fixture, "stale.json")], fixture).stderr).toContain("E_APPROVAL_MISMATCH");
+      if (["skill", "native-plugin", "portable-plugin"].includes(kind)) {
+        const marker = join(output, ".hermes-agent-maker", "ownership.json");
+        writeFileSync(marker, `${readFileSync(marker, "utf8")} `);
+        expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stderr).toContain("E_MARKER");
+      }
+    }
+    const special = join(fixture, "special");
+    mkdirSync(special);
+    symlinkSync(join(fixture, "missing"), join(special, "leaf"));
+    const unsafe = { kind: "skill", intent: "artifact:generator", content: "Create a safe fixture.", target: "special/leaf", name: "fixture-agent", mode: "preview", template_version: "1.0.0" };
+    writeFileSync(join(fixture, "unsafe.json"), JSON.stringify(unsafe));
+    expect(run([process.execPath, hermesGeneratePath, "--manifest", join(fixture, "unsafe.json"), "--workspace", fixture], fixture).stderr).toContain("E_SPECIAL_FILE");
+    for (const invalid of [
+      { kind: "soul", intent: "artifact:generator", content: "Create safe identity guidance.", target: ".env", mode: "preview", template_version: "1.0.0" },
+      { kind: "agents", intent: "artifact:generator", content: "Create safe project guidance.", target: 42, mode: "preview", template_version: "1.0.0" },
+      { kind: "skill", intent: "artifact:generator", content: "Write .env settings.", target: "forbidden-env-skill", name: "forbidden-env-skill", mode: "preview", template_version: "1.0.0" },
+    ]) {
+      const path = join(fixture, `invalid-${String(invalid.kind)}.json`);
+      writeFileSync(path, JSON.stringify(invalid));
+      expect(run([process.execPath, hermesGeneratePath, "--manifest", path, "--workspace", fixture], fixture).exitCode).toBe(1);
+    }
+    writeFileSync(join(fixture, "SOUL.md"), "private mode\n", { mode: 0o600 });
+    chmodSync(join(fixture, "SOUL.md"), 0o600);
+    const unsupportedMode = { kind: "soul", intent: "artifact:generator", content: "Create safe identity guidance.", target: "SOUL.md", mode: "preview", template_version: "1.0.0" };
+    const unsupportedModePath = join(fixture, "unsupported-mode.json");
+    writeFileSync(unsupportedModePath, JSON.stringify(unsupportedMode));
+    expect(run([process.execPath, hermesGeneratePath, "--manifest", unsupportedModePath, "--workspace", fixture], fixture).stderr).toContain("E_PREIMAGE_MODE");
+    rmSync(join(fixture, "SOUL.md"));
+    const staleTarget = "stale-lock-skill";
+    const staleSpec = { kind: "skill", intent: "artifact:generator", content: "Create stale lock recovery fixture.", target: staleTarget, name: staleTarget, mode: "preview", template_version: "1.0.0" };
+    const staleSpecPath = join(fixture, "stale-lock.json");
+    writeFileSync(staleSpecPath, JSON.stringify(staleSpec));
+    const stalePreview = JSON.parse(run([process.execPath, hermesGeneratePath, "--manifest", staleSpecPath, "--workspace", fixture], fixture).stdout);
+    staleSpec.mode = "apply";
+    staleSpec.approved_change_set = stalePreview;
+    writeFileSync(staleSpecPath, JSON.stringify(staleSpec));
+    const lockToken = createHash("sha256").update(staleTarget).digest("hex").slice(0, 16);
+    const staleLock = join(realpathSync(fixture), `.hermes-agent-maker-lock-${lockToken}`);
+    mkdirSync(staleLock);
+    writeFileSync(join(staleLock, "owner.json"), JSON.stringify({ pid: 2147483647, created_at: "2000-01-01T00:00:00.000Z" }));
+    expect(run([process.execPath, hermesGeneratePath, "--manifest", staleSpecPath, "--workspace", fixture], fixture).exitCode).toBe(0);
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+}, 30_000);
+
+test("portable oracle distinguishes normative validity from Hermes boundaries", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "hypercore-hermes-portable-"));
+  const invoke = () => run([process.execPath, hermesPortableValidatorPath, "--root", fixture], fixture);
+  const writePortable = (mcp) => {
+    mkdirSync(join(fixture, "skills", "fixture"), { recursive: true });
+    writeFileSync(join(fixture, "skills", "fixture", "SKILL.md"), "---\nname: fixture\ndescription: Fixture portable skill.\n---\n\n# Fixture\n");
+    writeFileSync(join(fixture, "plugin.json"), JSON.stringify({
+      $schema: "https://agentplugins.dev/schemas/v1.0.0/plugin.schema.json", name: "fixture-plugin", version: "1.0.0",
+      description: "Fixture", components: { skills: ["skills/fixture"], ...(mcp ? { mcp: ["mcp/fixture.json"] } : {}) },
+    }));
+    if (mcp) {
+      mkdirSync(join(fixture, "mcp"), { recursive: true });
+      writeFileSync(join(fixture, "mcp", "fixture.json"), JSON.stringify({ version: "1.0.0", ...mcp }));
+    }
+  };
+  try {
+    writePortable(null);
+    expect(invoke().exitCode).toBe(0);
+    writePortable({ $schema: "https://agentplugins.dev/schemas/v1.0.0/mcp.schema.json", servers: { loopback: { transport: "streamable-http", url: "http://127.0.0.1:3000" } } });
+    expect(invoke().exitCode).toBe(0);
+    for (const server of [
+      { transport: "sse", url: "http://127.0.0.1:3000" },
+      { transport: "http", url: "http://example.com" },
+      { transport: "streamable-http", url: "http://user:pass@127.0.0.1:3000" },
+    ]) {
+      writePortable({ $schema: "https://agentplugins.dev/schemas/v1.0.0/mcp.schema.json", servers: { boundary: server } });
+      expect(invoke().exitCode).toBe(1);
+    }
+    rmSync(join(fixture, "skills", "fixture", "SKILL.md"));
+    expect(invoke().stderr).toContain("E_REFERENCE");
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+});
 
 test("detector-absent correction restores legacy bytes and reapplies the exact final filesystem state", () => {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -255,7 +539,7 @@ test("validator accepts the approved inventory", () => {
   const result = run([process.execPath, validatorPath], root);
   expect(result.stderr).toBe("");
   expect(result.exitCode).toBe(0);
-  expect(result.stdout).toContain("Validated 30 Bun MJS skill scripts.");
+  expect(result.stdout).toContain("Validated 32 Bun MJS skill scripts (20 former-sh, 1 former-py, 9 retained-mjs, 2 authored-mjs baseline-absence).");
 });
 test("validator rejects AST-visible static policy and declaration mutations", () => {
   const fixture = mkdtempSync(join(tmpdir(), "hypercore-validator-mutation-"));
@@ -816,6 +1100,35 @@ test("pre-deploy rejects malformed package metadata", () => {
     expect(result.exitCode).toBe(1);
     expect(`${result.stdout}\n${result.stderr}`).toContain("package.json");
     expect(result.stdout).not.toContain("Ready to deploy");
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test("hermes generator preview approval applies a skill as a complete directory tree", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "hypercore-hermes-generator-"));
+  const target = "demo-skill";
+  const previewManifest = join(fixture, "preview.json");
+  try {
+    writeFileSync(previewManifest, JSON.stringify({
+      kind: "skill", intent: "artifact:skill-package", content: "Create a complete demo skill.", target, name: "demo-skill", mode: "preview", template_version: "1.0.0",
+    }));
+    const preview = run([process.execPath, hermesGeneratePath, "--manifest", previewManifest, "--workspace", fixture], fixture);
+    expect(preview.exitCode).toBe(0);
+    expect(existsSync(join(fixture, target))).toBe(false);
+    const rendered = JSON.parse(preview.stdout);
+    const applyManifest = join(fixture, "apply.json");
+    writeFileSync(applyManifest, JSON.stringify({
+      kind: "skill", intent: "artifact:skill-package", content: "Create a complete demo skill.", target, name: "demo-skill", mode: "apply", template_version: "1.0.0",
+      approved_change_set: rendered,
+    }));
+    const applied = run([process.execPath, hermesGeneratePath, "--manifest", applyManifest, "--workspace", fixture], fixture);
+    expect(applied.exitCode).toBe(0);
+    expect(JSON.parse(applied.stdout)).toMatchObject({ receipt_kind: "apply", mode: "apply", transaction_phase: "committed", recovery_disposition: "none" });
+    expect(statSync(join(fixture, target)).isDirectory()).toBe(true);
+    expect(existsSync(join(fixture, target, "SKILL.md"))).toBe(true);
+    expect(existsSync(join(fixture, target, "SKILL.ko.md"))).toBe(true);
+    expect(existsSync(join(fixture, target, ".hermes-agent-maker", "ownership.json"))).toBe(true);
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }

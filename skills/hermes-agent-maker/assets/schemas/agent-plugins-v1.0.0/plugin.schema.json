@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentplugins.dev/schemas/v1.0.0/plugin.schema.json",
+  "title": "Agent Plugins v1.0.0 plugin manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "components", "name", "version"],
+  "properties": {
+    "$schema": { "const": "https://agentplugins.dev/schemas/v1.0.0/plugin.schema.json" },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skills"],
+      "properties": {
+        "mcp": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/mcpPath" } },
+        "skills": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/skillPath" } }
+      }
+    },
+    "description": { "type": "string", "minLength": 1, "maxLength": 280 },
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+    "version": { "$ref": "#/$defs/semanticVersion" }
+  },
+  "$defs": {
+    "mcpPath": { "type": "string", "pattern": "^mcp/[a-z][a-z0-9-]{0,62}\\.json$" },
+    "semanticVersion": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$" },
+    "skillPath": { "type": "string", "pattern": "^skills/[a-z][a-z0-9-]{0,62}$" }
+  }
+}

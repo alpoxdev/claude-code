@@ -105,6 +105,36 @@
       "behaviorContractId": "git-worktree--validate-git-worktree-skill"
     },
     {
+      "path": "skills/hermes-agent-maker/scripts/generate.mjs",
+      "family": "hermes-agent-maker",
+      "legacyOrigin": "authored-mjs",
+      "usage": "generate-artifact",
+      "behavior": "hermes-artifact-generation",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/hermes-agent-maker/scripts/generate.mjs",
+          "absent": true
+        }
+      },
+      "behaviorContractId": "hermes-agent-maker--generate"
+    },
+    {
+      "path": "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs",
+      "family": "hermes-agent-maker",
+      "legacyOrigin": "authored-mjs",
+      "usage": "validate-portable-output",
+      "behavior": "portable-output-validation",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs",
+          "absent": true
+        }
+      },
+      "behaviorContractId": "hermes-agent-maker--validate-portable-v1-output"
+    },
+    {
       "path": "skills/image-maker/scripts/validate-image-maker.mjs",
       "family": "image-maker",
       "legacyOrigin": "retained-mjs",

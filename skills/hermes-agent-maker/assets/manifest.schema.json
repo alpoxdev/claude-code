@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentplugins.dev/hermes-agent-maker/manifest.schema.json",
+  "title": "NormalizedArtifactSpec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["content", "intent", "kind", "mode", "target", "template_version"],
+  "properties": {
+    "approved_change_set": { "$ref": "#/$defs/approvalEnvelope" },
+    "content": { "type": "string", "minLength": 1, "maxLength": 500, "pattern": "^(?!.*[\\u0000-\\u001F\\u007F-\\u009F])(?!.*\\.[Ee][Nn][Vv])(?!.*\\b(?:[Ii][Nn][Ss][Tt][Aa][Ll][Ll](?:[Aa][Tt][Ii][Oo][Nn])?|[Ll][Oo][Gg][Ii][Nn]|[Pp][Rr][Oo][Ff][Ii][Ll][Ee]|[Tt][Rr][Uu][Ss][Tt]|[Ee][Nn][Aa][Bb][Ll][Ee](?:[Mm][Ee][Nn][Tt])?|[Rr][Ee][Mm][Oo][Vv][Ee]|[Gg][Aa][Tt][Ee][Ww][Aa][Yy]|[Dd][Ii][Ss][Cc][Oo][Rr][Dd]|[Bb][Oo][Tt]|[Aa][Dd][Aa][Pp][Tt][Ee][Rr]|[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll][Ss]?|[Tt][Oo][Kk][Ee][Nn][Ss]?|[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][ _-]?[Kk][Ee][Yy]|[Aa][Pp][Ii][ _-]?[Kk][Ee][Yy]|\\.[Ee][Nn][Vv]|[Nn][Ee][Tt][Ww][Oo][Rr][Kk]|[Ee][Xx][Tt][Ee][Rr][Nn][Aa][Ll][ _-]?[Tt][Rr][Aa][Nn][Ss][Mm][Ii][Ss][Ss][Ii][Oo][Nn]|[Dd][Yy][Nn][Aa][Mm][Ii][Cc][ _-]?[Ss][Cc][Hh][Ee][Mm][Aa]|[Ss][Cc][Hh][Ee][Mm][Aa][ _-]?(?:[Ff][Ee][Tt][Cc][Hh]|[Rr][Ee][Tt][Rr][Ii][Ee][Vv][Aa][Ll]))\\b)[^\\r\\n\\\"'\\\\:{}\\[\\]<>]+$" },
+    "intent": { "enum": ["artifact:generator", "artifact:skill-package", "constraint:no-unsafe-side-effects", "constraint:paired-docs", "integration:hermes-docs", "integration:skill-maker", "surface:generated-files", "surface:user-routing"] },
+    "kind": { "enum": ["skill", "native-plugin", "portable-plugin", "soul", "agents", "user-draft", "memory-draft"] },
+    "mode": { "enum": ["preview", "apply"] },
+    "name": { "$ref": "#/$defs/packageName" },
+    "target": { "$ref": "#/$defs/safeRelativePath" },
+    "template_version": { "const": "1.0.0" }
+  },
+  "allOf": [
+    { "if": { "properties": { "kind": { "enum": ["skill", "native-plugin", "portable-plugin"] } }, "required": ["kind"] }, "then": { "required": ["name"] } },
+    { "if": { "properties": { "kind": { "const": "soul" } }, "required": ["kind"] }, "then": { "properties": { "target": { "const": "SOUL.md" } } } },
+    { "if": { "properties": { "kind": { "const": "agents" } }, "required": ["kind"] }, "then": { "properties": { "target": { "const": "AGENTS.md" } } } },
+    { "if": { "properties": { "kind": { "const": "user-draft" } }, "required": ["kind"] }, "then": { "properties": { "target": { "const": "USER.md.draft.md" } } } },
+    { "if": { "properties": { "kind": { "const": "memory-draft" } }, "required": ["kind"] }, "then": { "properties": { "target": { "const": "MEMORY.md.draft.md" } } } },
+    { "if": { "properties": { "mode": { "const": "apply" } }, "required": ["mode"] }, "then": { "required": ["approved_change_set"] }, "else": { "not": { "required": ["approved_change_set"] } } }
+  ],
+  "$defs": {
+    "approvalEnvelope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["approval_digest", "artifact_id", "changes", "directories", "files", "kind", "mode", "preimage", "preview_id", "recovery_disposition", "target_identity", "template_version", "transaction_phase"],
+      "properties": {
+        "approval_digest": { "$ref": "#/$defs/sha256" }, "artifact_id": { "$ref": "#/$defs/sha256" }, "changes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/change" } },
+        "directories": { "type": "array", "items": { "$ref": "#/$defs/safeRelativePath" }, "uniqueItems": true },
+        "files": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/renderedFile" } }, "kind": { "enum": ["skill", "native-plugin", "portable-plugin", "soul", "agents", "user-draft", "memory-draft"] },
+        "mode": { "const": "preview" }, "preimage": { "type": "object", "additionalProperties": { "$ref": "#/$defs/preimageFile" }, "propertyNames": { "$ref": "#/$defs/safeRelativePath" } },
+        "preview_id": { "$ref": "#/$defs/sha256" }, "recovery_disposition": { "const": "none" }, "target_identity": { "$ref": "#/$defs/safeRelativePath" }, "template_version": { "const": "1.0.0" }, "transaction_phase": { "const": "preview" }
+      }
+    },
+    "change": { "type": "object", "additionalProperties": false, "required": ["new_mode", "new_sha256", "old_mode", "old_sha256", "operation", "path"], "properties": { "new_mode": { "type": ["integer", "null"], "enum": [null, 420, 493] }, "new_sha256": { "anyOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }, "old_mode": { "type": ["integer", "null"], "enum": [null, 420, 493] }, "old_sha256": { "anyOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }, "operation": { "enum": ["create", "update", "delete"] }, "path": { "$ref": "#/$defs/safeRelativePath" } } },
+    "packageName": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+    "renderedFile": { "type": "object", "additionalProperties": false, "required": ["content_bytes", "content_encoding", "mode", "path", "sha256"], "properties": { "content_bytes": { "type": "string", "contentEncoding": "base64" }, "content_encoding": { "const": "base64" }, "mode": { "type": "integer", "enum": [420, 493] }, "path": { "$ref": "#/$defs/safeRelativePath" }, "sha256": { "$ref": "#/$defs/sha256" } } },
+    "preimageFile": { "type": "object", "additionalProperties": false, "required": ["mode", "sha256"], "properties": { "mode": { "type": "integer", "enum": [420, 493] }, "sha256": { "$ref": "#/$defs/sha256" } } },
+    "safeRelativePath": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9._-][A-Za-z0-9._/-]*$" }, "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

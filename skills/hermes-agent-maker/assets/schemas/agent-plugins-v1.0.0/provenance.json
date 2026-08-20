@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "retrieval": "offline-vendored",
+  "schemas": [
+    {
+      "checked_at": "2026-08-20",
+      "path": "mcp.schema.json",
+      "sha256": "71487e544ce1307fd7334e46ab8582f7337b18b079f0e491d72060616cca4167",
+      "source_url": "https://agentplugins.dev/schemas/v1.0.0/mcp.schema.json"
+    },
+    {
+      "checked_at": "2026-08-20",
+      "path": "plugin.schema.json",
+      "sha256": "f595e94d8874504c3c4c97205f25ce00d38789f5afbb48643ae2aafa7fb21bfc",
+      "source_url": "https://agentplugins.dev/schemas/v1.0.0/plugin.schema.json"
+    }
+  ]
+}

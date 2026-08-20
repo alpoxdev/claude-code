@@ -3,12 +3,14 @@
 
 /** Validate the approved Bun skill-script inventory and safety boundaries. */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = join(root, "scripts/fixtures/skill-script-parity/manifest.json");
+const behaviorContractsPath = join(root, "scripts/fixtures/skill-script-parity/behavior/contracts.json");
 const skillsPath = join(root, "skills");
 const expectedForbiddenLiterals = ["git-commit-detect", ".agents/skills/git-commit", ".claude/skills/git-commit", ".codex/skills/git-commit", "installed|", "missing|"];
 const expectedScanTargets = ["skills/version-update", "scripts/fixtures/skill-script-parity/behavior"];
@@ -38,6 +40,10 @@ function sameList(left, right) { return JSON.stringify(sorted(left)) === JSON.st
 function isRecord(value) { return typeof value === "object" && value !== null && !Array.isArray(value); }
 /** @param {unknown} value @returns {value is string} */
 function nonEmpty(value) { return typeof value === "string" && value.trim() !== ""; }
+/** @param {string} path @returns {boolean} */
+function existsInBaseline(path) {
+  try { execFileSync("git", ["cat-file", "-e", `990359457e2ccbf2bd4bb65065037d456c5940bc:${path}`], { cwd: root, stdio: "ignore" }); return true; } catch { return false; }
+}
 
 /**
  * Validates JSDoc contracts for top-level command, parser, decoder, spawn, and main functions.
@@ -145,7 +151,9 @@ function validateStaticPolicy(content, file) {
       assert(false, `${file} must not use generic Object/object/any JSDoc types`);
     }
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-      assert(node.moduleSpecifier.text.startsWith("node:"), `${file} imports must use node: built-ins`);
+      const approvedSiblingImport = file === "skills/hermes-agent-maker/scripts/generate.mjs"
+        && node.moduleSpecifier.text === "./validate-portable-v1-output.mjs";
+      assert(node.moduleSpecifier.text.startsWith("node:") || approvedSiblingImport, `${file} imports must use node: built-ins or its approved portable oracle`);
     }
     if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
       assert(node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0]) && node.arguments[0].text.startsWith("node:"), `${file} dynamic imports must use node: built-ins`);
@@ -170,12 +178,12 @@ function validateStaticPolicy(content, file) {
 
 const manifest = /** @type {Record<string, unknown>} */ (JSON.parse(readFileSync(manifestPath, "utf8")));
 assert(Array.isArray(manifest.scripts), "manifest scripts must be an array");
-assert(manifest.scripts.length === 30, "manifest must contain exactly 30 scripts");
+assert(manifest.scripts.length === 32, "manifest must contain exactly 32 scripts");
 assert(manifest.scripts.every(isRecord), "manifest rows must be objects");
 const requiredRowFields = ["path", "family", "legacyOrigin", "usage", "behavior"];
-const legacyOrigins = new Set(["former-sh", "former-py", "retained-mjs"]);
-const usages = new Set(["apply-version", "build-preview", "calculate-version", "check-deployment", "check-lint", "commit-files", "detect-package-manager", "detect-stack", "discover-version", "inspect-repository", "push-commit", "read-version", "render-dashboard", "render-planning-map", "run-build", "validate-skill", "validate-skill-corpus"]);
-const behaviors = new Set(["deployment-readiness-check", "fast-git-commit", "git-push", "lint-readiness-check", "package-manager-detection", "planning-map-render", "preview-build", "project-build", "render-dashboard", "repository-discovery", "repository-status", "scoped-git-commit", "skill-validation", "skills-corpus-validation", "stack-detection", "version-application", "version-calculation", "version-discovery", "version-reading"]);
+const legacyOrigins = new Set(["former-sh", "former-py", "retained-mjs", "authored-mjs"]);
+const usages = new Set(["apply-version", "build-preview", "calculate-version", "check-deployment", "check-lint", "commit-files", "detect-package-manager", "detect-stack", "discover-version", "generate-artifact", "inspect-repository", "push-commit", "read-version", "render-dashboard", "render-planning-map", "run-build", "validate-portable-output", "validate-skill", "validate-skill-corpus"]);
+const behaviors = new Set(["deployment-readiness-check", "fast-git-commit", "git-push", "hermes-artifact-generation", "lint-readiness-check", "package-manager-detection", "planning-map-render", "portable-output-validation", "preview-build", "project-build", "render-dashboard", "repository-discovery", "repository-status", "scoped-git-commit", "skill-validation", "skills-corpus-validation", "stack-detection", "version-application", "version-calculation", "version-discovery", "version-reading"]);
 const expectedMetadata = new Map([
   ["skills/autoresearch-code/scripts/render-dashboard.mjs", ["render-dashboard", "render-dashboard"]],
   ["skills/autoresearch-skill/scripts/render-dashboard.mjs", ["render-dashboard", "render-dashboard"]],
@@ -207,9 +215,11 @@ const expectedMetadata = new Map([
   ["skills/version-update/scripts/version-current.mjs", ["read-version", "version-reading"]],
   ["skills/version-update/scripts/version-find.mjs", ["discover-version", "version-discovery"]],
   ["skills/vite-architecture/scripts/validate-vite-architecture-skill.mjs", ["validate-skill", "skill-validation"]],
+  ["skills/hermes-agent-maker/scripts/generate.mjs", ["generate-artifact", "hermes-artifact-generation"]],
+  ["skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs", ["validate-portable-output", "portable-output-validation"]],
 ]);
-assert(expectedMetadata.size === 30, "concrete metadata mapping must cover exactly 30 scripts");
-const originCounts = { "former-sh": 0, "former-py": 0, "retained-mjs": 0 };
+assert(expectedMetadata.size === 32, "concrete metadata mapping must cover exactly 32 scripts");
+const originCounts = { "former-sh": 0, "former-py": 0, "retained-mjs": 0, "authored-mjs": 0 };
 for (const [index, row] of manifest.scripts.entries()) {
   for (const field of requiredRowFields) assert(nonEmpty(row[field]), `manifest scripts[${index}].${field} must be a non-empty string`);
   assert(legacyOrigins.has(row.legacyOrigin), `manifest scripts[${index}].legacyOrigin must be an approved enum value`);
@@ -219,16 +229,40 @@ for (const [index, row] of manifest.scripts.entries()) {
   const expected = expectedMetadata.get(row.path);
   assert(expected !== undefined && row.usage === expected[0] && row.behavior === expected[1], `manifest scripts[${index}] metadata must match its concrete path mapping`);
   originCounts[row.legacyOrigin] += 1;
-  assert(isRecord(row.sourcePreimage)
-    && nonEmpty(row.sourcePreimage.path)
-    && /^[a-f0-9]{64}$/u.test(String(row.sourcePreimage.sha256))
-    && (row.sourcePreimage.gitMode === "100755" || row.sourcePreimage.gitMode === "100644"),
-  `manifest scripts[${index}] requires concrete source preimage evidence`);
+  assert(isRecord(row.sourcePreimage), `manifest scripts[${index}] requires source provenance evidence`);
+  if (row.legacyOrigin === "authored-mjs") {
+    const absence = row.sourcePreimage.baselineAbsence;
+    assert(isRecord(absence)
+      && absence.baselineRef === manifest.legacyPreimageBase
+      && absence.path === row.path
+      && absence.absent === true,
+    `manifest scripts[${index}] requires baseline-absence proof`);
+  } else {
+    assert(nonEmpty(row.sourcePreimage.path)
+      && /^[a-f0-9]{64}$/u.test(String(row.sourcePreimage.sha256))
+      && (row.sourcePreimage.gitMode === "100755" || row.sourcePreimage.gitMode === "100644"),
+    `manifest scripts[${index}] requires concrete source preimage evidence`);
+  }
   assert(nonEmpty(row.behaviorContractId), `manifest scripts[${index}] requires a behavior contract id`);
 }
-assert(originCounts["former-sh"] === 20 && originCounts["former-py"] === 1 && originCounts["retained-mjs"] === 9, "manifest origin counts must be exactly 20 former-sh, 1 former-py, and 9 retained-mjs");
+assert(originCounts["former-sh"] === 20 && originCounts["former-py"] === 1 && originCounts["retained-mjs"] === 9 && originCounts["authored-mjs"] === 2, "manifest origin counts must be exactly 20/1/9/2");
 const approved = manifest.scripts.map((row) => /** @type {string} */ (row.path));
 assert(new Set(approved).size === approved.length, "manifest script paths must be unique");
+const behaviorContracts = /** @type {Record<string, unknown>} */ (JSON.parse(readFileSync(behaviorContractsPath, "utf8")));
+assert(behaviorContracts.requiredBy === relative(root, manifestPath), "behavior contracts must name the manifest as their central owner");
+assert(isRecord(behaviorContracts.coverage)
+  && behaviorContracts.coverage.expectedRows === 32
+  && behaviorContracts.coverage.expectedFixtures === 96,
+"behavior contract coverage must be exactly 32 rows and 96 fixtures");
+assert(Array.isArray(behaviorContracts.rows) && behaviorContracts.rows.length === 32, "behavior contracts must contain exactly 32 rows");
+for (const [index, contract] of behaviorContracts.rows.entries()) {
+  assert(isRecord(contract) && nonEmpty(contract.path) && nonEmpty(contract.id) && isRecord(contract.fixtures),
+    `behavior contracts.rows[${index}] must be a complete row`);
+  const row = manifest.scripts.find((candidate) => candidate.path === contract.path);
+  assert(row !== undefined && contract.id === row.behaviorContractId, `behavior contracts.rows[${index}] must match its manifest row`);
+  assert(sameList(Object.keys(contract.fixtures), ["happy", "malformed", "familyEdge"]),
+    `behavior contracts.rows[${index}] must contain exactly three fixture kinds`);
+}
 
 const references = manifest.forbiddenDetectorReferences;
 assert(isRecord(references) && Array.isArray(references.records), "manifest forbiddenDetectorReferences.records must be an array");
@@ -273,7 +307,7 @@ const scriptFiles = filesBelow(skillsPath).map((file) => relative(root, file));
 const mjsFiles = scriptFiles.filter((file) => file.endsWith(".mjs"));
 const legacyFiles = scriptFiles.filter((file) => /\/scripts\/.*\.(?:sh|py)$/u.test(file));
 assert(legacyFiles.length === 0, `skill script directories must contain no .sh or .py files: ${legacyFiles.join(", ")}`);
-assert(sameList(mjsFiles, approved), "MJS inventory must exactly match the 30-row manifest");
+assert(sameList(mjsFiles, approved), "MJS inventory must exactly match historical inventory plus authored scripts");
 
 for (const target of expectedScanTargets) assert(existsSync(join(root, target)), `required forbidden-reference scan target is missing: ${target}`);
 const auditFiles = expectedScanTargets.flatMap((target) => {
@@ -296,12 +330,19 @@ for (const file of approved) {
   assert(!/\b(?:exec|execFile|spawn)\s*\([^\n]*\{[^\n]*\bshell\s*:\s*true/u.test(content), `${file} must not invoke a shell`);
   assert(!/\bBun\.\$|\b(?:bash|sh|zsh)\s+-c\b/u.test(content), `${file} must not use shell command patterns`);
   assert(!/\b(?:import\s*\{[^}]*\bspawnSync\b[^}]*\}|(?:const|let|var)\s+spawnSync\s*=)\b/u.test(content), `${file} must not use spawnSync`);
-  assert(!/\b(?:import|export)\s+(?:[^"']+?\s+from\s+)?["']\.{1,2}\//u.test(content), `${file} must not have runtime local imports`);
+  const localImports = [...content.matchAll(/\b(?:import|export)\s+(?:[^"']+?\s+from\s+)?["'](\.{1,2}\/[^"']+)["']/gu)].map((match) => match[1]);
+  const approvedLocalImports = file === "skills/hermes-agent-maker/scripts/generate.mjs"
+    ? ["./validate-portable-v1-output.mjs"]
+    : [];
+  assert(localImports.every((value) => approvedLocalImports.includes(value)) && localImports.length === approvedLocalImports.length,
+    `${file} must not have unapproved runtime local imports`);
   assert(!/\bimport\s*\(\s*["']\.{1,2}\//u.test(content), `${file} must not dynamically import local modules`);
   assert(!/\brequire\s*\(\s*["']\.{1,2}\//u.test(content), `${file} must not require local modules`);
   assert(!/["']node:child_process["']/u.test(content), `${file} must not import shell process helpers`);
   validateNamedFunctionDocs(content, file);
   validateStaticPolicy(content, file);
+  const row = manifest.scripts.find((candidate) => candidate.path === file);
+  if (row.legacyOrigin === "authored-mjs") assert(!existsInBaseline(file), `${file} authored-mjs path must be absent from immutable baseline`);
 }
 
-console.log(`Validated ${approved.length} Bun MJS skill scripts.`);
+console.log(`Validated ${approved.length} Bun MJS skill scripts (20 former-sh, 1 former-py, 9 retained-mjs, 2 authored-mjs baseline-absence).`);
