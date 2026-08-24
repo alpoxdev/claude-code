@@ -276,6 +276,11 @@ test("Hermes renders deterministic previews for all seven artifact kinds and kee
       "adversarial-injected-content": [/reject|거절/u, /safety boundary|안전.*범위|금지 경계/isu, /Discord/u, /token/u, /gateway/u],
       "regression-no-approval-gate": [/invent an approval (?:interview|gate) by default|승인 관문을 기본으로 발명하지/u, /mode: "apply"|apply 모드/u, /approval interview|승인 인터뷰/u, /permission-begging|허락을 구하는/u],
       "regression-honor-explicit-preview": [/EXPLICIT user instruction|사용자가 명시한/u, /honored by running preview and stopping|preview를 실행하고 멈춰/u, /preview only|preview만/u, /AUTHORITATIVE/u],
+      "positive-explicit-en": [/skill/u, /SKILL\.md/u, /바로 씁니다|writes directly/u, /기록된 파일|written files/u, /승인 인터뷰|approval interview/u, /Discord/u],
+      "positive-explicit-ko": [/skill/u, /SKILL\.md/u, /바로 씁니다|writes directly/u, /기록된 파일|written files/u, /승인 인터뷰|approval interview/u, /Discord/u],
+      "positive-explicit-mixed": [/native-plugin/u, /register\(ctx\)/u, /validat/iu, /install/u, /enable/u],
+      "positive-contextual-soul-mixed": [/`soul`/u, /workspace-local `SOUL\.md`|workspace 안의 `SOUL\.md`/u, /active memory|활성.*memory/isu, /install/u],
+      "negative-control-docs-mixed": [/Do not trigger|작동하지 않습니다/u, /ordinary documentation|일반 문서/u, /skill/u, /SOUL\.md/u],
     };
     for (const entry of evals) {
       expect(typeof entry.prompt).toBe("string");
@@ -295,6 +300,20 @@ test("Hermes renders deterministic previews for all seven artifact kinds and kee
     }
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 }, 20_000);
+
+test("Hermes trigger eval corpus covers the invocation-mode axis", () => {
+  const evals = readFileSync(join(root, "skills/hermes-agent-maker/assets/evals/hermes-agent-maker-cases.jsonl"), "utf8")
+    .trim().split("\n").map((line) => JSON.parse(line));
+  const allowed = new Set(["explicit", "implicit", "contextual", "negative-control"]);
+  /** @type {Set<string>} */
+  const seen = new Set();
+  for (const entry of evals) {
+    expect(allowed.has(entry.invocationMode)).toBe(true);
+    seen.add(entry.invocationMode);
+  }
+  expect(seen.size).toBe(allowed.size);
+  for (const mode of allowed) expect(seen.has(mode)).toBe(true);
+});
 
 test("Hermes writes every kind directly, refuses unrequested overwrites, and rejects unsafe roots", () => {
   const fixture = mkdtempSync(join(tmpdir(), "hypercore-hermes-apply-"));
