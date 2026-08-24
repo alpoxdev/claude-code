@@ -10,13 +10,13 @@ import { validatePortableV1Documents } from "./validate-portable-v1-output.mjs";
 const scriptRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const markerPath = ".hermes-agent-maker/ownership.json";
 const templates = JSON.parse(readFileSync(join(scriptRoot, "assets/templates/artifacts.json"), "utf8"));
-const manifestSchema = JSON.parse(readFileSync(join(scriptRoot, "assets/manifest.schema.json"), "utf8"));
 const directoryKinds = new Set(["skill", "native-plugin", "portable-plugin"]);
 const kinds = new Set([...directoryKinds, "soul", "agents", "user-draft", "memory-draft"]);
 /** @type {Readonly<Record<string, string>>} */
 const singleFileTargets = Object.freeze({ soul: "SOUL.md", agents: "AGENTS.md", "user-draft": "USER.md.draft.md", "memory-draft": "MEMORY.md.draft.md" });
-const forbiddenContent = /[\p{Cc}]/u;
-const forbiddenTerms = /\b(?:install(?:ation)?|login|profile|trust|enable(?:ment)?|remove|gateway|discord|bot|adapter|credential|credentials|token|tokens|password|secret|private[ _-]?key|api[ _-]?key|\.env|network|external[ _-]?transmission|dynamic[ _-]?schema|schema[ _-]?(?:fetch|retrieval))\b/iu;
+const packageName = /^[a-z][a-z0-9-]{0,62}$/u;
+const safeSummary = /^[A-Za-z0-9][^\r\n"'\\:{}[\]<>#&*!|%@`]{0,499}$/u;
+const forbiddenTerms = /\.env\b|\b(?:install(?:ation)?|login|profile|trust|enable(?:ment)?|remove|gateway|discord|bot|adapter|credential|credentials|token|tokens|password|secret|private[ _-]?key|api[ _-]?key|network|external[ _-]?transmission|dynamic[ _-]?schema|schema[ _-]?(?:fetch|retrieval))\b/iu;
 
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
 function record(value) { return typeof value === "object" && value !== null && !Array.isArray(value); }
@@ -41,31 +41,36 @@ function ownedEntry(value) {
     && typeof value.sha256 === "string" && /^[a-f0-9]{64}$/u.test(value.sha256)
     && typeof value.mode === "number" && fileMode(value.mode);
 }
-/** @param {string[]} argv @returns {{manifest:string,workspace:string,approval?:string}} @throws {Error} for invalid arguments */
+/** @param {string[]} argv @returns {{manifest:string,workspace:string}} @throws {Error} for invalid arguments */
 function parseArgs(argv) {
   /** @type {Record<string, string | undefined>} */ const values = {};
   for (let i = 0; i < argv.length; i += 2) {
     const key = argv[i], value = argv[i + 1];
-    if (!/^--(?:manifest|workspace|approval)$/u.test(key) || value === undefined || values[key.slice(2)] !== undefined) throw new Error("E_ARGS");
+    if (!/^--(?:manifest|workspace)$/u.test(key) || value === undefined || values[key.slice(2)] !== undefined) throw new Error("E_ARGS");
     values[key.slice(2)] = value;
   }
   if (!values.manifest || !values.workspace) throw new Error("E_ARGS");
-  return /** @type {{manifest:string,workspace:string,approval?:string}} */ (values);
+  return /** @type {{manifest:string,workspace:string}} */ (values);
 }
 /** @param {string} path */
 function readJson(path) { try { const value = JSON.parse(readFileSync(path, "utf8")); if (!record(value)) throw new Error(); return value; } catch { throw new Error("E_JSON"); } }
-/** @param {Record<string, unknown>} spec */
+/**
+ * Rejects any spec field the deterministic renderer does not accept.
+ * @param {Record<string, unknown>} spec
+ * @returns {void}
+ * @throws {Error} for an unknown field, unsupported kind, unsafe summary, or mismatched target
+ */
 function validateSpec(spec) {
-  const allowed = new Set(["kind", "intent", "content", "target", "name", "mode", "template_version", "approved_change_set"]);
-  const intents = manifestSchema.properties?.intent?.enum, kind = String(spec.kind), target = String(spec.target);
-  if (!Array.isArray(intents) || Object.keys(spec).some((key) => !allowed.has(key)) || !kinds.has(kind)
-    || !intents.includes(spec.intent) || typeof spec.content !== "string" || spec.content.length < 1 || spec.content.length > 500
-    || forbiddenContent.test(spec.content) || /[\r\n"'\\:{}[\]<>]/u.test(spec.content) || forbiddenTerms.test(spec.content) || /\.env/iu.test(spec.content)
-    || typeof spec.target !== "string" || !safePath(target) || spec.mode !== "preview" && spec.mode !== "apply"
-    || spec.template_version !== "1.0.0" || (directoryKinds.has(kind) && !/^[a-z][a-z0-9-]{0,62}$/u.test(String(spec.name)))) throw new Error("E_SPEC");
+  const allowed = new Set(["kind", "summary", "target", "name", "mode", "overwrite", "template_version"]);
+  const kind = String(spec.kind), target = String(spec.target);
+  if (Object.keys(spec).some((key) => !allowed.has(key)) || !kinds.has(kind)
+    || typeof spec.summary !== "string" || !safeSummary.test(spec.summary) || forbiddenTerms.test(spec.summary)
+    || typeof spec.target !== "string" || !safePath(target)
+    || (spec.mode !== "preview" && spec.mode !== "apply")
+    || (spec.overwrite !== undefined && typeof spec.overwrite !== "boolean")
+    || spec.template_version !== "1.0.0") throw new Error("E_SPEC");
+  if (directoryKinds.has(kind) ? !packageName.test(String(spec.name)) : spec.name !== undefined) throw new Error("E_SPEC");
   if (singleFileTargets[kind] !== undefined && target !== singleFileTargets[kind]) throw new Error("E_TARGET");
-  if (spec.name !== undefined && (typeof spec.name !== "string" || !/^[a-z][a-z0-9-]{0,62}$/u.test(spec.name))) throw new Error("E_SPEC");
-  if (spec.mode === "apply" !== record(spec.approved_change_set)) throw new Error("E_APPROVAL_REQUIRED");
 }
 /** Reject symlinks and special files in every existing component, then resolve the workspace's real root. @param {string} workspace @param {string} target */
 function resolveSafeTarget(workspace, target) {
@@ -86,18 +91,19 @@ function resolveSafeTarget(workspace, target) {
   }
   return { root, output };
 }
+/** @param {string} value @param {Record<string, unknown>} spec */
+function substitute(value, spec) {
+  return value.replaceAll("{{name}}", String(spec.name ?? "")).replaceAll("{{summary}}", String(spec.summary));
+}
 /** @param {Record<string, unknown>} spec */
 function renderFiles(spec) {
   const artifact = templates.artifacts?.[String(spec.kind)];
   if (!record(artifact) || !Array.isArray(artifact.files)) throw new Error("E_TEMPLATE");
   const files = artifact.files.map((value) => {
-    if (!record(value) || typeof value.path !== "string" || typeof value.content !== "string" || typeof value.mode !== "number" || !safePath(value.path) || !fileMode(value.mode) || value.path === markerPath) throw new Error("E_TEMPLATE");
-    const name = String(spec.name), content = String(spec.content);
-    const path = value.path.replaceAll("agent-plugin", name).replaceAll("agent-skill", name);
-    const renderedContent = spec.kind === "portable-plugin" && path === "plugin.json" ? JSON.stringify(content).slice(1, -1)
-      : spec.kind === "portable-plugin" && path.endsWith("/SKILL.md") ? JSON.stringify(content)
-        : content;
-    return { path, content: value.content.replaceAll("agent-plugin", name).replaceAll("agent-skill", name).replaceAll("An agent skill.", renderedContent), mode: value.mode };
+    if (!record(value) || typeof value.path !== "string" || typeof value.content !== "string" || typeof value.mode !== "number" || !fileMode(value.mode)) throw new Error("E_TEMPLATE");
+    const path = substitute(value.path, spec);
+    if (!safePath(path) || path === markerPath) throw new Error("E_TEMPLATE");
+    return { path, content: substitute(value.content, spec), mode: value.mode };
   });
   if (!files.length || new Set(files.map((file) => file.path)).size !== files.length) throw new Error("E_TEMPLATE");
   return files.sort((a, b) => a.path.localeCompare(b.path));
@@ -118,7 +124,12 @@ function addOwnershipMarker(identity, spec, files) {
   const payload = { schema_version: 1, artifact_kind: spec.kind, target_identity: identity, template_version: spec.template_version, marker_path: markerPath, owned_directories, owned_entries };
   return [...files, { path: markerPath, content: `${canonicalJson({ ...payload, owned_set_digest: sha256(canonicalJson(payload)) })}\n`, mode: 0o644 }].sort((a, b) => a.path.localeCompare(b.path));
 }
-/** @param {{path:string,content:string,mode:number}[]} files */
+/**
+ * Runs the pinned offline Agent Plugins v1.0.0 oracle and the narrower Hermes subset.
+ * @param {{path:string,content:string,mode:number}[]} files
+ * @returns {void}
+ * @throws {Error} when the rendered portable package fails either layer
+ */
 function validateRenderedPortableOutput(files) {
   validatePortableV1Documents(Object.fromEntries(files.map((file) => [file.path, file.content])));
 }
@@ -168,7 +179,7 @@ function treeDirectoriesFromFiles(identity, files) {
 /** @param {Map<string,{sha256:string,mode:number}>} map */
 function mapObject(map) { return Object.fromEntries([...map].sort(([a], [b]) => a.localeCompare(b))); }
 /** @param {string} identity @param {string} path @param {boolean} directory @returns {string} */
-function approvalPath(identity, path, directory) {
+function artifactPath(identity, path, directory) {
   const value = directory ? `${identity}/${path}` : identity;
   if (!safePath(value)) throw new Error("E_TARGET");
   return value;
@@ -176,7 +187,7 @@ function approvalPath(identity, path, directory) {
 /** @param {Record<string, unknown>} spec @param {string} identity @param {{path:string,content:string,mode:number}[]} files @param {boolean} directory */
 function buildRenderedArtifact(spec, identity, files, directory) {
   const renderedFiles = files.map((file) => ({
-    path: approvalPath(identity, file.path, directory),
+    path: artifactPath(identity, file.path, directory),
     content_encoding: "base64",
     content_bytes: Buffer.from(file.content).toString("base64"),
     sha256: sha256(file.content),
@@ -193,12 +204,20 @@ function buildChangeSet(target, identity, files, directory) {
   const paths = [...new Set([...desired.keys(), ...actual.keys()])].sort();
   return paths.map((path) => {
     const old = actual.get(path) ?? null, next = desired.get(path) ?? null;
-    return { operation: /** @type {"create"|"update"|"delete"} */ (next ? old ? "update" : "create" : "delete"), path: approvalPath(identity, path, directory), old_sha256: old?.sha256 ?? null, old_mode: old?.mode ?? null, new_sha256: next?.sha256 ?? null, new_mode: next?.mode ?? null };
+    return { operation: /** @type {"create"|"update"|"delete"} */ (next ? old ? "update" : "create" : "delete"), path: artifactPath(identity, path, directory), old_sha256: old?.sha256 ?? null, old_mode: old?.mode ?? null, new_sha256: next?.sha256 ?? null, new_mode: next?.mode ?? null };
   });
 }
-/** @param {string} target @param {string} identity @param {Record<string, unknown>} spec */
-function preflightOwnedRoot(target, identity, spec) {
+/**
+ * Refuses to write over anything this generator does not already own.
+ * @param {string} target
+ * @param {string} identity
+ * @param {Record<string, unknown>} spec
+ * @returns {void}
+ * @throws {Error} when the existing target is unowned, malformed, or not marked for overwrite
+ */
+function validateWritableTarget(target, identity, spec) {
   if (!existsSync(target)) return;
+  if (spec.overwrite !== true) throw new Error("E_TARGET_EXISTS");
   if (!directoryKinds.has(String(spec.kind))) {
     const stat = lstatSync(target);
     if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("E_UNOWNED_ROOT");
@@ -227,84 +246,36 @@ function preflightOwnedRoot(target, identity, spec) {
   if (canonicalJson(directories) !== canonicalJson(value.owned_directories) || canonicalJson(treeDirectories(target)) !== canonicalJson(directories)) throw new Error("E_MARKER");
   const actual = treeMap(target), allowed = new Set([markerPath, ...entries.map((entry) => entry.path)]);
   if (actual.size !== allowed.size || [...actual.keys()].some((path) => !allowed.has(path))) throw new Error("E_UNOWNED_ROOT");
-  for (const entry of entries) { const actualEntry = actual.get(entry.path); if (!actualEntry || actualEntry.sha256 !== entry.sha256 || actualEntry.mode !== entry.mode) throw new Error("E_PREIMAGE"); }
-}
-/** @param {unknown} approval @param {Record<string, unknown>} expected */
-function validateApprovalEnvelope(approval, expected) {
-  if (!record(approval) || canonicalJson(approval) !== canonicalJson(expected)) throw new Error("E_APPROVAL_MISMATCH");
-}
-/** @param {unknown} approval @param {Record<string, unknown>} spec @param {string} identity @param {Record<string, unknown>} [expected] @returns {asserts approval is Record<string, unknown>} */
-function validateApprovalIntegrity(approval, spec, identity, expected) {
-  if (!record(approval)) throw new Error("E_APPROVAL_MISMATCH");
-  if (approval.kind !== spec.kind || approval.target_identity !== identity || approval.template_version !== spec.template_version
-    || typeof approval.artifact_id !== "string" || typeof approval.preview_id !== "string" || typeof approval.approval_digest !== "string") throw new Error("E_APPROVAL_MISMATCH");
-  const { approval_digest, preview_id, ...base } = approval;
-  if (preview_id !== sha256(canonicalJson(base)) || approval_digest !== sha256(canonicalJson({ ...base, preview_id }))) throw new Error("E_APPROVAL_MISMATCH");
-  if (expected !== undefined && canonicalJson(approval) !== canonicalJson(expected)) throw new Error("E_APPROVAL_MISMATCH");
+  for (const entry of entries) { const actualEntry = actual.get(entry.path); if (!actualEntry || actualEntry.sha256 !== entry.sha256 || actualEntry.mode !== entry.mode) throw new Error("E_UNOWNED_ROOT"); }
 }
 /** @param {string} path @param {Record<string,{sha256:string,mode:number}>} expected */
 function matchesMap(path, expected) { try { return canonicalJson(mapObject(treeMap(path))) === canonicalJson(expected); } catch { return false; } }
-/** @param {unknown} value @param {boolean} single */
+/**
+ * Accepts only a journal map whose paths and file modes this generator could have produced.
+ * @param {unknown} value
+ * @param {boolean} single
+ * @returns {boolean}
+ */
 function validJournalMap(value, single) {
   return record(value) && Object.entries(value).every(([path, entry]) => (single ? path === "" : safePath(path)) && record(entry)
     && Object.keys(entry).sort().join(",") === "mode,sha256" && typeof entry.sha256 === "string" && /^[a-f0-9]{64}$/u.test(entry.sha256) && typeof entry.mode === "number" && fileMode(entry.mode));
 }
-/** @param {Record<string, unknown>} authorization */
-function journalAuthorization(authorization) {
-  return {
-    artifact_id: authorization.artifact_id,
-    kind: authorization.kind,
-    target_identity: authorization.target_identity,
-    template_version: authorization.template_version,
-    preview_id: authorization.preview_id,
-    approval_digest: authorization.approval_digest,
-    changes: authorization.changes,
-    files: authorization.files,
-    directories: authorization.directories,
-    preimage: authorization.preimage,
-    mode: authorization.mode,
-    transaction_phase: authorization.transaction_phase,
-    recovery_disposition: authorization.recovery_disposition,
-  };
-}
-/** @param {Record<string, unknown>} authorization @param {boolean} directory @returns {{expected: Record<string,{sha256:string,mode:number}>, previous: Record<string,{sha256:string,mode:number}>}} */
-function mapsFromAuthorization(authorization, directory) {
-  if (!Array.isArray(authorization.files) || !Array.isArray(authorization.changes) || typeof authorization.target_identity !== "string") throw new Error("E_JOURNAL_AUTHORIZATION");
-  const prefix = `${authorization.target_identity}/`;
-  /** @type {Record<string,{sha256:string,mode:number}>} */
-  const expected = {};
-  for (const entry of authorization.files) {
-    if (!record(entry) || typeof entry.path !== "string" || typeof entry.sha256 !== "string" || typeof entry.mode !== "number") throw new Error("E_JOURNAL_AUTHORIZATION");
-    const approvedPath = entry.path;
-    const path = directory ? approvedPath.startsWith(prefix) ? approvedPath.slice(prefix.length) : "" : approvedPath === authorization.target_identity ? "" : "\0";
-    if ((directory && !safePath(path)) || (!directory && path !== "")) throw new Error("E_JOURNAL_AUTHORIZATION");
-    expected[path] = { sha256: entry.sha256, mode: entry.mode };
-  }
-  /** @type {Record<string,{sha256:string,mode:number}>} */
-  const previous = {};
-  for (const change of authorization.changes) {
-    if (!record(change) || typeof change.path !== "string") throw new Error("E_JOURNAL_AUTHORIZATION");
-    const path = directory ? change.path.startsWith(prefix) ? change.path.slice(prefix.length) : "" : change.path === authorization.target_identity ? "" : "\0";
-    if ((directory && !safePath(path)) || (!directory && path !== "")) throw new Error("E_JOURNAL_AUTHORIZATION");
-    if (change.old_sha256 !== null || change.old_mode !== null) {
-      if (typeof change.old_sha256 !== "string" || typeof change.old_mode !== "number") throw new Error("E_JOURNAL_AUTHORIZATION");
-      previous[path] = { sha256: change.old_sha256, mode: change.old_mode };
-    }
-  }
-  return { expected, previous };
-}
-/** Deterministically complete or roll back only the transaction bound to this approval. @param {string} journal @param {Record<string, unknown>} authorization @returns {"completed" | "rolled-back"} */
-function recoverJournal(journal, authorization) {
+/**
+ * Deterministically completes or rolls back only the transaction bound to this artifact.
+ * @param {string} journal
+ * @param {string} artifactId
+ * @returns {"completed" | "rolled-back"}
+ * @throws {Error} when the journal is foreign, malformed, or its state is ambiguous
+ */
+function recoverJournal(journal, artifactId) {
   const value = readJson(journal);
   if (value.version !== 1 || typeof value.directory !== "boolean" || !safePath(String(value.target_identity)) || typeof value.target !== "string" || typeof value.stage !== "string" || typeof value.backup !== "string") throw new Error("E_JOURNAL");
-  if (!record(value.authorization) || canonicalJson(value.authorization) !== canonicalJson(journalAuthorization(authorization))) throw new Error("E_JOURNAL_AUTHORIZATION");
+  if (typeof value.artifact_id !== "string" || value.artifact_id !== artifactId) throw new Error("E_FOREIGN_TRANSACTION");
   const { target, stage, backup } = value;
   const parent = dirname(target), token = sha256(target).slice(0, 16);
   if (journal !== join(parent, `.hermes-agent-maker-journal-${token}.json`) || dirname(stage) !== parent || dirname(backup) !== parent
     || !stage.startsWith(join(parent, `.hermes-agent-maker-stage-${token}-`)) || backup !== `${target}.hermes-backup`) throw new Error("E_JOURNAL");
   if (!validJournalMap(value.expected, !value.directory) || !validJournalMap(value.previous, !value.directory)) throw new Error("E_JOURNAL");
-  const derived = mapsFromAuthorization(authorization, value.directory);
-  if (canonicalJson(value.expected) !== canonicalJson(derived.expected) || canonicalJson(value.previous) !== canonicalJson(derived.previous)) throw new Error("E_JOURNAL_AUTHORIZATION");
   const rootExpected = matchesMap(target, /** @type {Record<string,{sha256:string,mode:number}>} */ (value.expected));
   const rootPrevious = matchesMap(target, /** @type {Record<string,{sha256:string,mode:number}>} */ (value.previous));
   const stageExpected = matchesMap(stage, /** @type {Record<string,{sha256:string,mode:number}>} */ (value.expected));
@@ -315,35 +286,44 @@ function recoverJournal(journal, authorization) {
   if (!existsSync(target) && !existsSync(stage) && backupPrevious) { renameSync(backup, target); rmSync(journal); return "rolled-back"; }
   throw new Error("E_RECOVERY_AMBIGUOUS");
 }
-/** Callable recovery entry point for interrupted transactions. @param {string} target @param {Record<string, unknown>} authorization @returns {"none" | "completed" | "rolled-back"} */
-function recoverTransaction(target, authorization) {
+/**
+ * Callable recovery entry point for an interrupted transaction on this target.
+ * @param {string} target
+ * @param {string} artifactId
+ * @returns {"none" | "completed" | "rolled-back"}
+ * @throws {Error} when a journal exists for a different target or cannot be resolved
+ */
+function recoverTransaction(target, artifactId) {
   const journal = join(dirname(target), `.hermes-agent-maker-journal-${sha256(target).slice(0, 16)}.json`);
   if (existsSync(journal)) {
     if (readJson(journal).target !== target) throw new Error("E_JOURNAL");
-    return recoverJournal(journal, authorization);
+    return recoverJournal(journal, artifactId);
   }
   return "none";
 }
-/** @param {string} target @param {string} identity @param {{path:string,content:string,mode:number}[]} files @param {boolean} directory @param {Record<string, unknown>} authorization */
-function commitTransaction(target, identity, files, directory, authorization) {
-  const parent = dirname(target); if (!existsSync(parent) || !lstatSync(parent).isDirectory() || lstatSync(parent).isSymbolicLink()) throw new Error("E_PARENT");
+/** @param {string} target @param {string} identity @param {{path:string,content:string,mode:number}[]} files @param {boolean} directory @param {string} artifactId */
+function commitTransaction(target, identity, files, directory, artifactId) {
+  const parent = dirname(target);
+  // Every existing path component was already checked for symlinks and special files.
+  if (!existsSync(parent)) mkdirSync(parent, { recursive: true });
+  if (!lstatSync(parent).isDirectory() || lstatSync(parent).isSymbolicLink()) throw new Error("E_PARENT");
   const prefix = `.hermes-agent-maker-stage-${sha256(target).slice(0, 16)}-`, stage = join(parent, `${prefix}${randomUUID()}`), backup = `${target}.hermes-backup`, journal = join(parent, `.hermes-agent-maker-journal-${sha256(target).slice(0, 16)}.json`);
-  if (existsSync(journal)) recoverJournal(journal, authorization);
+  if (existsSync(journal)) recoverJournal(journal, artifactId);
   if (existsSync(backup)) throw new Error("E_STALE_TRANSACTION");
   const expected = mapObject(new Map(files.map((file) => [directory ? file.path : "", { sha256: sha256(file.content), mode: file.mode }])));
   try {
-  if (directory) {
-    mkdirSync(stage);
-    for (const file of files) { const path = join(stage, file.path); mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, file.content, { mode: file.mode }); chmodSync(path, file.mode); }
-  } else {
-    const file = files[0];
-    writeFileSync(stage, file.content, { mode: file.mode }); chmodSync(stage, file.mode);
-  }
-  if (!matchesMap(stage, expected)) throw new Error("E_STAGE_VERIFY");
+    if (directory) {
+      mkdirSync(stage);
+      for (const file of files) { const path = join(stage, file.path); mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, file.content, { mode: file.mode }); chmodSync(path, file.mode); }
+    } else {
+      const file = files[0];
+      writeFileSync(stage, file.content, { mode: file.mode }); chmodSync(stage, file.mode);
+    }
+    if (!matchesMap(stage, expected)) throw new Error("E_STAGE_VERIFY");
   } catch (error) { if (existsSync(stage)) rmSync(stage, { recursive: true }); throw error; }
   const previous = mapObject(treeMap(target));
   try {
-    writeFileSync(journal, canonicalJson({ version: 1, directory, target_identity: identity, target, stage, backup, expected, previous, authorization: journalAuthorization(authorization) }) + "\n");
+    writeFileSync(journal, canonicalJson({ version: 1, directory, target_identity: identity, target, stage, backup, artifact_id: artifactId, expected, previous }) + "\n");
   } catch (error) {
     if (existsSync(stage)) rmSync(stage, { recursive: true });
     throw error;
@@ -367,7 +347,7 @@ function commitTransaction(target, identity, files, directory, authorization) {
         if (existsSync(target) && matchesMap(target, expected) && !existsSync(stage)) renameSync(target, stage);
         if (!existsSync(target)) renameSync(backup, target);
       } catch {
-        // Preserve journal, stage, and backup evidence for authorization-bound recovery.
+        // Preserve journal, stage, and backup evidence for artifact-bound recovery.
       }
     }
     throw error;
@@ -397,72 +377,60 @@ function acquireLock(lock) {
   try { writeFileSync(join(lock, "owner.json"), canonicalJson({ pid: process.pid, created_at: new Date().toISOString() }) + "\n", { mode: 0o600 }); }
   catch (error) { rmSync(lock, { recursive: true }); throw error; }
 }
-/** @param {string[]} argv @returns {void} @throws {Error} for invalid input, unsafe state, or failed transaction */
+/**
+ * Renders one normalized spec, then previews it or writes it in a single transaction.
+ * @param {string[]} argv
+ * @returns {void}
+ * @throws {Error} for invalid input, an unsafe target, or a failed transaction
+ */
 function main(argv) {
   const args = parseArgs(argv), spec = readJson(args.manifest); validateSpec(spec);
   const { root, output: target } = resolveSafeTarget(args.workspace, String(spec.target)), identity = String(spec.target), directory = directoryKinds.has(String(spec.kind));
   const files = addOwnershipMarker(identity, spec, renderFiles(spec));
   if (spec.kind === "portable-plugin") validateRenderedPortableOutput(files);
-  const renderedArtifact = buildRenderedArtifact(spec, identity, files, directory);
-  /** @returns {Record<string, unknown>} */
-  const buildEnvelope = () => {
-    preflightOwnedRoot(target, identity, spec);
-    const changes = buildChangeSet(target, identity, files, directory);
-    /** @type {[string, {sha256:string,mode:number}][]} */
-    const preimageEntries = [...treeMap(target)]
-      .map(([path, entry]) => /** @type {[string, {sha256:string,mode:number}]} */ ([approvalPath(identity, path, directory), entry]));
-    preimageEntries.sort(([a], [b]) => a.localeCompare(b));
-    const preimage = Object.fromEntries(preimageEntries);
-    const base = { artifact_id: renderedArtifact.artifact_id, kind: spec.kind, target_identity: identity, template_version: spec.template_version, files: renderedArtifact.files, directories: renderedArtifact.directories, changes, preimage, mode: "preview", transaction_phase: "preview", recovery_disposition: "none" };
-    const preview_id = sha256(canonicalJson(base)), unsigned = { ...base, preview_id };
-    return { ...unsigned, approval_digest: sha256(canonicalJson(unsigned)) };
-  };
-  let envelope;
+  const rendered = buildRenderedArtifact(spec, identity, files, directory);
+  const describe = () => ({
+    artifact_id: rendered.artifact_id,
+    kind: spec.kind,
+    target_identity: identity,
+    template_version: spec.template_version,
+    files: rendered.files,
+    directories: rendered.directories,
+    changes: buildChangeSet(target, identity, files, directory),
+  });
+  // Preview reports the change-set for any readable target; only apply enforces the write gates.
+  if (spec.mode === "preview") {
+    process.stdout.write(`${canonicalJson({ receipt_kind: "preview", mode: "preview", ...describe() })}\n`);
+    return;
+  }
+  // The lock serializes final containment, ownership, and recovery checks with the writer.
+  const lock = join(root, `.hermes-agent-maker-lock-${sha256(identity).slice(0, 16)}`);
   let recoveryDisposition = "none";
-  if (spec.mode === "apply") {
-    const approval = args.approval ? readJson(args.approval) : /** @type {Record<string, unknown>} */ (spec.approved_change_set);
-    validateApprovalIntegrity(approval, spec, identity);
-    if (approval.artifact_id !== renderedArtifact.artifact_id
-      || canonicalJson(approval.files) !== canonicalJson(renderedArtifact.files)
-      || canonicalJson(approval.directories) !== canonicalJson(renderedArtifact.directories)) throw new Error("E_APPROVAL_MISMATCH");
-    // The lock serializes final containment and preimage checks with the writer.
-    const lock = join(root, `.hermes-agent-maker-lock-${sha256(identity).slice(0, 16)}`);
-    let locked = false;
-    try {
-      acquireLock(lock); locked = true; const current = resolveSafeTarget(root, identity).output;
-      if (current !== target) throw new Error("E_CONTAINMENT");
-      // Interrupted state must be authenticated and repaired before deriving a
-      // new preview from the filesystem it left behind.
-      const recovery = recoverTransaction(target, approval);
-      recoveryDisposition = recovery;
-      if (recovery === "completed") {
-        envelope = approval;
-      } else {
-        envelope = buildEnvelope();
-        validateApprovalEnvelope(approval, envelope);
-        commitTransaction(target, identity, files, directory, envelope);
-      }
-    } finally { if (locked && existsSync(lock) && lstatSync(lock).isDirectory() && !lstatSync(lock).isSymbolicLink()) rmSync(lock, { recursive: true }); }
-  } else envelope = buildEnvelope();
-  const output = spec.mode === "apply"
-    ? {
-        receipt_kind: "apply",
-        mode: "apply",
-        transaction_phase: "committed",
-        recovery_disposition: recoveryDisposition,
-        artifact_id: envelope.artifact_id,
-        kind: envelope.kind,
-        target_identity: envelope.target_identity,
-        template_version: envelope.template_version,
-        preview_id: envelope.preview_id,
-        approval_digest: envelope.approval_digest,
-        changes: envelope.changes,
-      }
-    : envelope;
-  process.stdout.write(`${canonicalJson(output)}\n`);
+  let locked = false;
+  try {
+    acquireLock(lock); locked = true;
+    if (resolveSafeTarget(root, identity).output !== target) throw new Error("E_CONTAINMENT");
+    // An interrupted transaction is authenticated and repaired before this run inspects the tree.
+    recoveryDisposition = recoverTransaction(target, rendered.artifact_id);
+    if (recoveryDisposition !== "completed") {
+      validateWritableTarget(target, identity, spec);
+      commitTransaction(target, identity, files, directory, rendered.artifact_id);
+    }
+  } finally { if (locked && existsSync(lock) && lstatSync(lock).isDirectory() && !lstatSync(lock).isSymbolicLink()) rmSync(lock, { recursive: true }); }
+  process.stdout.write(`${canonicalJson({
+    receipt_kind: "apply",
+    mode: "apply",
+    transaction_phase: "committed",
+    recovery_disposition: recoveryDisposition,
+    artifact_id: rendered.artifact_id,
+    kind: spec.kind,
+    target_identity: identity,
+    template_version: spec.template_version,
+    written: rendered.files.map((file) => ({ path: file.path, sha256: file.sha256, mode: file.mode })),
+  })}\n`);
 }
 
-export { main, recoverTransaction, buildChangeSet, preflightOwnedRoot };
+export { main, recoverTransaction, buildChangeSet, validateWritableTarget };
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try { main(process.argv.slice(2)); } catch (error) { process.stderr.write(`${JSON.stringify({ error: error instanceof Error ? error.message : "E_UNKNOWN" })}\n`); process.exitCode = 1; }
 }
