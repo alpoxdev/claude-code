@@ -217,6 +217,7 @@ bun skills/hermes-agent-maker/scripts/generate.mjs \
 
 - `scripts/generate.mjs` — 목적: 정규화된 artifact를 결정적으로 렌더링하고 transaction 방식으로 씁니다. artifact를 생성하거나 교체할 때 불러와 실행합니다.
 - `scripts/validate-portable-v1-output.mjs` — 목적: 기록된 portable-plugin을 고정 v1 계약으로 검증합니다. portable-plugin 생성 후 불러와 실행합니다.
+- `scripts/validate-hermes-agent-maker.mjs` — 목적: 이 패키지의 자기 일관성 불변식을 검사하며, 기대값을 모두 실제 소스에서 실행 시점에 도출합니다. 패키지 파일을 바꿀 때 실행합니다.
 - `assets/manifest.schema.json` — 목적: 허용되는 정규화 manifest 형태를 정의합니다. generator manifest를 만들거나 검증할 때 읽습니다.
 - `assets/templates/artifacts.json` — 목적: generator가 소유한 artifact template을 제공합니다. generator가 자동으로 읽으며 절대 손으로 수정하지 않습니다.
 - `assets/schemas/agent-plugins-v1.0.0/` — 목적: 고정된 offline portable-plugin oracle을 제공합니다. portable-plugin 검증 때 읽고 절대 가져오지 않습니다.

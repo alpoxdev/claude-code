@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "requiredBy": "scripts/fixtures/skill-script-parity/manifest.json",
   "coverage": {
-    "expectedRows": 32,
+    "expectedRows": 33,
     "legacyOriginCounts": {
       "former-sh": 20,
       "former-py": 1,
       "retained-mjs": 9,
-      "authored-mjs": 2
+      "authored-mjs": 3
     },
     "requiredDimensions": [
       "stdout",
@@ -24,7 +24,7 @@
       "malformed",
       "familyEdge"
     ],
-    "expectedFixtures": 96
+    "expectedFixtures": 99
   },
   "rows": [
     {
@@ -1533,7 +1533,7 @@
             "files": [
               {
                 "path": "spec.json",
-                "text": "{\"kind\":\"skill\",\"intent\":\"artifact:generator\",\"content\":\"Create a reviewed fixture skill.\",\"target\":\"fixture-skill\",\"name\":\"fixture-skill\",\"mode\":\"preview\",\"template_version\":\"1.0.0\"}"
+                "text": "{\"kind\":\"skill\",\"summary\":\"Create a reviewed fixture skill\",\"target\":\"fixture-skill\",\"name\":\"fixture-skill\",\"mode\":\"preview\",\"template_version\":\"1.0.0\"}"
               }
             ]
           },
@@ -1542,8 +1542,8 @@
               "contains": [
                 "\"kind\":\"skill\"",
                 "\"target_identity\":\"fixture-skill\"",
-                "\"preview_id\"",
-                "\"approval_digest\""
+                "\"receipt_kind\":\"preview\"",
+                "\"artifact_id\""
               ]
             },
             "stderr": {
@@ -1553,8 +1553,8 @@
             "files": [
               {
                 "path": "spec.json",
-                "bytes": 183,
-                "sha256": "f708c0392c460a05392f38a353a6b8c72b43c378be4c9928db8f04fa56655e5b"
+                "bytes": 152,
+                "sha256": "5c90cba8d0910e93539bda04003721a3c87cca3348241929f728e2453d318e3f"
               }
             ],
             "modes": {
@@ -1637,7 +1637,7 @@
             "files": [
               {
                 "path": "spec.json",
-                "text": "{\"kind\":\"skill\",\"intent\":\"artifact:generator\",\"content\":\"Create a reviewed fixture skill.\",\"target\":\"fixture-skill\",\"name\":\"fixture-skill\",\"mode\":\"apply\",\"template_version\":\"1.0.0\",\"approved_change_set\":{}}"
+                "text": "{\"kind\":\"skill\",\"summary\":\"Create a reviewed fixture skill\",\"target\":\"fixture-skill\",\"name\":\"fixture-skill\",\"mode\":\"apply\",\"template_version\":\"1.0.0\",\"approved_change_set\":{}}"
               }
             ]
           },
@@ -1646,14 +1646,14 @@
               "equals": ""
             },
             "stderr": {
-              "equals": "{\"error\":\"E_APPROVAL_MISMATCH\"}\n"
+              "equals": "{\"error\":\"E_SPEC\"}\n"
             },
             "exit": 1,
             "files": [
               {
                 "path": "spec.json",
-                "bytes": 206,
-                "sha256": "5910aca78b977184c16066b6ef095199cfa7fdb02fd932ce87afa05980b924e4"
+                "bytes": 175,
+                "sha256": "017f5420877d3d9a869352f7880a33a016a4878fae497b792f55035f29d0f084"
               }
             ],
             "modes": {
@@ -1668,6 +1668,146 @@
               "spec.json",
               "--workspace",
               "."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "hermes-agent-maker--validate-hermes-agent-maker",
+      "path": "skills/hermes-agent-maker/scripts/validate-hermes-agent-maker.mjs",
+      "family": "hermes-agent-maker",
+      "legacyOrigin": "authored-mjs",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/hermes-agent-maker/scripts/validate-hermes-agent-maker.mjs",
+          "absent": true
+        }
+      },
+      "dimensions": {
+        "stdout": true,
+        "stderr": true,
+        "exit": true,
+        "files": true,
+        "modes": true,
+        "cwd": true,
+        "env": true,
+        "argv": true
+      },
+      "fixtures": {
+        "happy": {
+          "scenario": "happy",
+          "command": {
+            "executable": "bun",
+            "arguments": [
+              "skills/hermes-agent-maker/scripts/validate-hermes-agent-maker.mjs"
+            ]
+          },
+          "input": {
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--help"
+            ],
+            "files": []
+          },
+          "expected": {
+            "stdout": {
+              "equals": "Usage: node skills/hermes-agent-maker/scripts/validate-hermes-agent-maker.mjs --root <dir> [--json]\n\nAsserts six self-consistency invariants over the hermes-agent-maker package,\nderiving every expected value from the live package sources at runtime.\n\n  (a) rules/routing.md required-field list matches the manifest schema\n  (b) every emitted E_* code is documented in references/error-codes.md\n  (c) every support file is named in SKILL.md\n  (d) every assets/examples/spec-*.json validates against the manifest schema\n  (e) every eval row carries an invocationMode and all four modes occur\n  (f) every *.md has a *.ko.md sibling\n\nOptions:\n  --root <dir>   Skill package root. Defaults to skills/hermes-agent-maker.\n  --json         Emit structured JSON.\n  --help         Show this help.\n\n"
+            },
+            "stderr": {
+              "equals": ""
+            },
+            "exit": 0,
+            "files": [],
+            "modes": {},
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--help"
+            ]
+          }
+        },
+        "malformed": {
+          "scenario": "malformed",
+          "command": {
+            "executable": "bun",
+            "arguments": [
+              "skills/hermes-agent-maker/scripts/validate-hermes-agent-maker.mjs"
+            ]
+          },
+          "input": {
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--wat"
+            ],
+            "files": []
+          },
+          "expected": {
+            "stdout": {
+              "equals": "{\n  \"ok\": false,\n  \"routingSchemaParity\": null,\n  \"errorCodeCoverage\": null,\n  \"supportFileReachability\": null,\n  \"exampleSpecs\": null,\n  \"evalInvocationModes\": null,\n  \"bilingualPairs\": null,\n  \"errors\": [\n    {\n      \"code\": \"ARG_UNKNOWN\",\n      \"message\": \"Unknown argument: --wat. Use --root <dir> [--json].\"\n    }\n  ]\n}\n"
+            },
+            "stderr": {
+              "equals": ""
+            },
+            "exit": 2,
+            "files": [],
+            "modes": {},
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--wat"
+            ]
+          }
+        },
+        "familyEdge": {
+          "scenario": "familyEdge",
+          "command": {
+            "executable": "bun",
+            "arguments": [
+              "skills/hermes-agent-maker/scripts/validate-hermes-agent-maker.mjs"
+            ]
+          },
+          "input": {
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--root",
+              "missing",
+              "--json"
+            ],
+            "files": []
+          },
+          "expected": {
+            "stdout": {
+              "equals": "{\n  \"ok\": false,\n  \"routingSchemaParity\": null,\n  \"errorCodeCoverage\": null,\n  \"supportFileReachability\": null,\n  \"exampleSpecs\": null,\n  \"evalInvocationModes\": null,\n  \"bilingualPairs\": null,\n  \"errors\": [\n    {\n      \"code\": \"ROOT_MISSING\",\n      \"message\": \"Root directory is missing: missing. Pass --root <package dir>.\",\n      \"path\": \"missing\"\n    }\n  ]\n}\n"
+            },
+            "stderr": {
+              "equals": ""
+            },
+            "exit": 1,
+            "files": [],
+            "modes": {},
+            "cwd": "isolated-temp-tree",
+            "env": {
+              "NO_COLOR": "1"
+            },
+            "argv": [
+              "--root",
+              "missing",
+              "--json"
             ]
           }
         }

@@ -217,6 +217,7 @@ Every package support file is directly discoverable here without duplicating its
 
 - `scripts/generate.mjs` — Purpose: deterministically render and transactionally write normalized artifacts. Load/run when an artifact must be generated or replaced.
 - `scripts/validate-portable-v1-output.mjs` — Purpose: validate a written portable-plugin against the pinned v1 contract. Load/run after generating portable-plugin output.
+- `scripts/validate-hermes-agent-maker.mjs` — Purpose: assert this package's own self-consistency invariants, deriving every expected value from the live sources. Run when changing any package file.
 - `assets/manifest.schema.json` — Purpose: define the accepted normalized manifest shape. Load when constructing or validating a generator manifest.
 - `assets/templates/artifacts.json` — Purpose: provide generator-owned artifact templates. Load automatically by the generator; NEVER hand-edit.
 - `assets/schemas/agent-plugins-v1.0.0/` — Purpose: provide the pinned offline portable-plugin oracle. Load during portable-plugin validation; never fetch.

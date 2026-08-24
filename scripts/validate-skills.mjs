@@ -178,7 +178,7 @@ function validateStaticPolicy(content, file) {
 
 const manifest = /** @type {Record<string, unknown>} */ (JSON.parse(readFileSync(manifestPath, "utf8")));
 assert(Array.isArray(manifest.scripts), "manifest scripts must be an array");
-assert(manifest.scripts.length === 32, "manifest must contain exactly 32 scripts");
+assert(manifest.scripts.length === 33, "manifest must contain exactly 33 scripts");
 assert(manifest.scripts.every(isRecord), "manifest rows must be objects");
 const requiredRowFields = ["path", "family", "legacyOrigin", "usage", "behavior"];
 const legacyOrigins = new Set(["former-sh", "former-py", "retained-mjs", "authored-mjs"]);
@@ -216,9 +216,10 @@ const expectedMetadata = new Map([
   ["skills/version-update/scripts/version-find.mjs", ["discover-version", "version-discovery"]],
   ["skills/vite-architecture/scripts/validate-vite-architecture-skill.mjs", ["validate-skill", "skill-validation"]],
   ["skills/hermes-agent-maker/scripts/generate.mjs", ["generate-artifact", "hermes-artifact-generation"]],
+  ["skills/hermes-agent-maker/scripts/validate-hermes-agent-maker.mjs", ["validate-skill", "skill-validation"]],
   ["skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs", ["validate-portable-output", "portable-output-validation"]],
 ]);
-assert(expectedMetadata.size === 32, "concrete metadata mapping must cover exactly 32 scripts");
+assert(expectedMetadata.size === 33, "concrete metadata mapping must cover exactly 33 scripts");
 const originCounts = { "former-sh": 0, "former-py": 0, "retained-mjs": 0, "authored-mjs": 0 };
 for (const [index, row] of manifest.scripts.entries()) {
   for (const field of requiredRowFields) assert(nonEmpty(row[field]), `manifest scripts[${index}].${field} must be a non-empty string`);
@@ -245,16 +246,16 @@ for (const [index, row] of manifest.scripts.entries()) {
   }
   assert(nonEmpty(row.behaviorContractId), `manifest scripts[${index}] requires a behavior contract id`);
 }
-assert(originCounts["former-sh"] === 20 && originCounts["former-py"] === 1 && originCounts["retained-mjs"] === 9 && originCounts["authored-mjs"] === 2, "manifest origin counts must be exactly 20/1/9/2");
+assert(originCounts["former-sh"] === 20 && originCounts["former-py"] === 1 && originCounts["retained-mjs"] === 9 && originCounts["authored-mjs"] === 3, "manifest origin counts must be exactly 20/1/9/3");
 const approved = manifest.scripts.map((row) => /** @type {string} */ (row.path));
 assert(new Set(approved).size === approved.length, "manifest script paths must be unique");
 const behaviorContracts = /** @type {Record<string, unknown>} */ (JSON.parse(readFileSync(behaviorContractsPath, "utf8")));
 assert(behaviorContracts.requiredBy === relative(root, manifestPath), "behavior contracts must name the manifest as their central owner");
 assert(isRecord(behaviorContracts.coverage)
-  && behaviorContracts.coverage.expectedRows === 32
-  && behaviorContracts.coverage.expectedFixtures === 96,
-"behavior contract coverage must be exactly 32 rows and 96 fixtures");
-assert(Array.isArray(behaviorContracts.rows) && behaviorContracts.rows.length === 32, "behavior contracts must contain exactly 32 rows");
+  && behaviorContracts.coverage.expectedRows === 33
+  && behaviorContracts.coverage.expectedFixtures === 99,
+"behavior contract coverage must be exactly 33 rows and 99 fixtures");
+assert(Array.isArray(behaviorContracts.rows) && behaviorContracts.rows.length === 33, "behavior contracts must contain exactly 33 rows");
 for (const [index, contract] of behaviorContracts.rows.entries()) {
   assert(isRecord(contract) && nonEmpty(contract.path) && nonEmpty(contract.id) && isRecord(contract.fixtures),
     `behavior contracts.rows[${index}] must be a complete row`);
@@ -345,4 +346,4 @@ for (const file of approved) {
   if (row.legacyOrigin === "authored-mjs") assert(!existsInBaseline(file), `${file} authored-mjs path must be absent from immutable baseline`);
 }
 
-console.log(`Validated ${approved.length} Bun MJS skill scripts (20 former-sh, 1 former-py, 9 retained-mjs, 2 authored-mjs baseline-absence).`);
+console.log(`Validated ${approved.length} Bun MJS skill scripts (20 former-sh, 1 former-py, 9 retained-mjs, 3 authored-mjs baseline-absence).`);
