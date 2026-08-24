@@ -1,8 +1,8 @@
 # Hermes Agent 확장 및 운영 지도
 
 > 영어 원문: [EXTENSIONS.md](EXTENSIONS.md)  
-> 함께 읽을 문서: [개요 및 런타임 사용](README.ko.md), [스킬](SKILLS.ko.md), [네이티브 플러그인](PLUGINS.ko.md).  
-> **조사 기준일:** 2026-08-20. 아래의 주장과 예시는 공식 Hermes 문서 및 공식 [NousResearch/hermes-agent 저장소](https://github.com/NousResearch/hermes-agent)로 제한한다.
+> 함께 읽을 문서: [개요 및 런타임 사용](README.ko.md), [설정](CONFIGURATION.ko.md), [Discord](DISCORD.ko.md), [메시징 게이트웨이](MESSAGING.ko.md), [스킬](SKILLS.ko.md), [네이티브 플러그인](PLUGINS.ko.md)
+> **조사 기준일:** 2026-08-24. 아래의 주장과 예시는 공식 Hermes 문서 및 공식 [NousResearch/hermes-agent 저장소](https://github.com/NousResearch/hermes-agent)로 제한한다.
 
 Hermes 확장은 신뢰 경계를 넘는다. MCP는 로컬 프로그램을 실행하거나 원격 서비스에 호출할 수 있고, 메시징 게이트웨이는 다른 플랫폼의 메시지를 받으며, 도구 제공자는 입력과 자격 증명을 받는다. 활성화는 단순 UI 기능 추가가 아니라 능력 부여로 취급한다. 무엇이든 켜기 전에 소스, 범위, 전송 방식, 자격 증명 흐름을 점검한다.
 
@@ -88,7 +88,7 @@ Hermes는 모든 통합을 하나의 플러그인으로 취급하지 않고 AI �
 
 ## 메시징 게이트웨이와 어댑터
 
-게이트웨이는 Telegram, Discord, Slack, WhatsApp, Signal, Email의 통합 경계다. 문서화된 진입점은 다음이다.
+게이트웨이는 Telegram, Discord, Slack, WhatsApp, Signal, Email의 통합 경계다. 공통 service lifecycle, authorization, session scope, durable delivery semantics, adapter 차이는 [메시징 게이트웨이](MESSAGING.ko.md)를, Developer Portal 설정, intent, 초대, Discord access policy, slash command, voice/media는 [Discord 설정](DISCORD.ko.md)을 읽는다. 문서화된 진입점은 다음이다.
 
 ```bash
 hermes gateway setup
@@ -115,7 +115,7 @@ Hooks는 수명주기 동작을 확장하고 shell hooks는 특히 명령을 실
 
 Hermes Desktop과 dashboard는 구성 및 확장 표면을 노출하지만 근본 신뢰 모델을 바꾸지 않는다. Install/login을 클릭하기 전에 선택 MCP/제공자/어댑터를 점검하고 dashboard를 제어할 수 있는 기기/세션을 보호한다. Desktop MCP 뷰는 검토하도록 카탈로그 전송, 소스, 인증, 엔드포인트/명령, bootstrap, setup 세부사항을 제공한다.
 
-기본 Hermes home은 `~/.hermes/`이며 `config.yaml`, `.env`, `auth.json`, 메모리, 스킬, cron 작업, 세션, 로그, MCP 토큰을 담는다. `HERMES_HOME`은 profile 상태를 선택한다. 사용자, 환경, 위험 수준별로 profile을 분리한다. 구성 우선순위는 CLI 인수, `~/.hermes/config.yaml`, 환경 변수/시크릿의 `~/.hermes/.env` 폴백, 내장 기본값 순이다. 문서화된 관리는 다음과 같다.
+기본 Hermes home은 `~/.hermes/`이며 `config.yaml`, `.env`, `auth.json`, 메모리, 스킬, cron 작업, 세션, 로그, MCP 토큰을 담는다. `HERMES_HOME`은 profile 상태를 선택한다. 사용자, 환경, 위험 수준별로 profile을 분리한다. 파일 소유권, managed scope, 키별 환경변수/설정 우선순위 주의점, secret source, 복구는 [설정 파일](CONFIGURATION.ko.md)을 따른다. 문서화된 관리는 다음과 같다.
 
 ```bash
 hermes config
@@ -132,7 +132,7 @@ Profile 격리는 일반 호스트 자격 증명을 자동 격리하지 **않는
 
 ## 보안 감사, 승인, 안전 운영
 
-확장을 활성화/변경하기 전 다음을 감사한다: 소스/릴리스와 설치 명령, 실행 위치, 도구 목록과 변경 범위, 자격 증명/OAuth scope, 도달 가능한 파일/네트워크/mount volume, 권한 있는 게이트웨이 사용자, 로그/보존, rollback/removal 경로. 제품 진단에는 `hermes doctor`를 실행하고 설치 성공을 보안 감사로 여기지 말고 구성/manifest 값을 검사한다.
+확장을 활성화/변경하기 전 다음을 감사한다: 소스/릴리스와 설치 명령, 실행 위치, 도구 목록과 변경 범위, 자격 증명/OAuth scope, 도달 가능한 파일/네트워크/mount volume, 권한 있는 게이트웨이 사용자, 로그/보존, rollback/removal 경로. 제품 진단에는 `hermes doctor`, on-demand supply-chain audit에는 `hermes security audit`을 실행한다. 둘 다 실제 구성·manifest 검토, sandbox, 완전한 code audit을 대체하지 않는다.
 
 Hermes 승인 모드는 `approvals.mode` 아래 `smart`(기본), `manual`, `off`다. Smart는 보조 LLM으로 위험을 평가하고 manual은 위험 명령을 묻고 off는 승인을 끄며 YOLO와 동등하다. 검토된 격리 자동화가 특별히 필요하지 않다면 `cron_mode: deny`와 `single_query_mode: deny`를 유지한다. 기본 승인 timeout은 fail-closed다.
 

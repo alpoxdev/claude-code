@@ -2,7 +2,7 @@
 
 > 영어판: [`README.md`](README.md)
 >
-> **조사일:** 2026-08-20. 이 문서는 근거를 갖춘 개요이며 로컬 런타임 검증 결과가 아니다. Hermes 버전에 따라 명령, provider, 확장 API가 달라질 수 있으므로 운영 전에 연결된 공식 reference에서 version-sensitive 동작을 확인한다.
+> **조사일:** 2026-08-24. 이 문서는 근거를 갖춘 개요이며 로컬 런타임 검증 결과가 아니다. Hermes 버전에 따라 명령, provider, 확장 API가 달라질 수 있으므로 운영 전에 연결된 공식 reference에서 version-sensitive 동작을 확인한다.
 
 Hermes Agent는 Nous Research의 오픈소스 agent runtime이다. CLI는 대화형·일회성 대화, tool 사용, profile, session, model/provider 설정, 선택적 확장 시스템을 지원한다.
 
@@ -16,7 +16,11 @@ Hermes Agent는 Nous Research의 오픈소스 agent runtime이다. CLI는 대화
 2. Global identity, project instruction, persistent memory, precedence, prompt-injection boundary는 [Context file과 SOUL.md](CONTEXT_FILES.ko.md)를 읽는다.
 3. Skill 사용, 신뢰, 설치, lifecycle은 [Skills](SKILLS.ko.md)를 읽고, 구조, 예제, 검증, 게시는 [Skill 작성](SKILL_AUTHORING.ko.md)을 읽는다.
 4. Native 또는 portable plugin의 선택, 설치, audit, 운영은 [Plugins](PLUGINS.ko.md)를 읽고, native 구현, 검증, 패키징은 [Plugin 작성](PLUGIN_AUTHORING.ko.md)을 읽는다.
-5. MCP, provider integration, messaging, dashboard/desktop, 운영 확장 표면은 [Extensions and operations](EXTENSIONS.ko.md)을 읽는다.
+5. 파일 소유권, 우선순위, secret source, approval/terminal 경계, migration, recovery는 [설정 파일](CONFIGURATION.ko.md)을 읽는다.
+6. Discord bot을 만들고, 초대하고, 인가하고, 운영하기 전에는 [Discord 설정](DISCORD.ko.md)을 읽는다.
+7. 공통 gateway lifecycle, authorization, session, delivery, adapter 차이는 [메시징 게이트웨이](MESSAGING.ko.md)를 읽는다.
+8. Durable multi-profile board, worker protocol, routing, review, recovery, 운영은 [Kanban](KANBAN.ko.md)을 읽는다.
+9. MCP, provider integration, dashboard/desktop, hook, 운영 확장 표면은 [Extensions and operations](EXTENSIONS.ko.md)을 읽는다.
 
 재사용 가능한 지식과 지시에는 **skill**, Hermes 내부에 등록되는 실행 가능한 동작에는 **plugin**, 외부 server가 이미 capability를 제공할 때는 **MCP**를 선택한다. 세부 내용은 이 개요가 아니라 연결된 안내서에 둔다.
 
@@ -90,18 +94,26 @@ Backup, import, log, configuration, support-oriented diagnostic에는 전용 CLI
 
 - **Skill:** [SKILLS.ko.md](SKILLS.ko.md), [SKILL_AUTHORING.ko.md](SKILL_AUTHORING.ko.md) — on-demand instruction package, trust, lifecycle, 구조, 검증, 게시.
 - **Plugin:** [PLUGINS.ko.md](PLUGINS.ko.md), [PLUGIN_AUTHORING.ko.md](PLUGIN_AUTHORING.ko.md) — 실행 가능한 native/portable package, lifecycle, 구현, capability, code-execution risk.
-- **Extension:** [EXTENSIONS.ko.md](EXTENSIONS.ko.md) — MCP, model/memory/context provider, messaging, secret, dashboard/desktop, hook, operation.
+- **설정:** [CONFIGURATION.ko.md](CONFIGURATION.ko.md) — `config.yaml`, `.env`, `auth.json`, 우선순위, secret, approval, terminal backend, migration, backup.
+- **Discord:** [DISCORD.ko.md](DISCORD.ko.md) — Developer Portal 설정, intent, bot 초대, authorization, slash command, voice/media, incident troubleshooting.
+- **메시징:** [MESSAGING.ko.md](MESSAGING.ko.md) — gateway service lifecycle, authorization/pairing, session scope, delivery semantics, adapter 차이.
+- **Kanban:** [KANBAN.ko.md](KANBAN.ko.md) — durable multi-profile task board, worker lifecycle, dependency, review, recovery, operation.
+- **Extension:** [EXTENSIONS.ko.md](EXTENSIONS.ko.md) — MCP, model/memory/context provider, dashboard/desktop, hook, operation.
 
 제3자 extension을 설치하거나 enable하기 전에 provenance와 source를 검사하고, 필요한 capability만 enable하며, 지원되는 경우 통제된 plugin deployment는 immutable revision에 pin한다. Catalog/index 등재, skill scanning, Plugin Doctor, dependency auditing은 유용한 통제 수단이지만 sandbox나 완전한 security review는 아니다. Portable `mcp.json`이나 plugin manifest에 credential을 절대 넣지 않는다.
 
 ## 출처와 근거 한계
 
-2026-08-20에 검토한 1차 출처:
+2026-08-24에 검토한 1차 출처:
 
 - [Hermes Agent documentation](https://hermes-agent.nousresearch.com/docs/)
 - [CLI Commands Reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands)
 - [Skills System](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills)
 - [Build a Hermes Plugin](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins)
+- [Configuration](https://hermes-agent.nousresearch.com/docs/user-guide/configuration)
+- [Discord Setup](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/discord)
+- [Messaging Gateway](https://hermes-agent.nousresearch.com/docs/user-guide/messaging)
+- [Kanban — Multi-Agent](https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban)
 - [Official GitHub repository](https://github.com/NousResearch/hermes-agent)
 
 이 문서는 공개 upstream 자료를 요약한다. 어떤 로컬 Hermes 설치에 특정 version, command, provider, credential state, extension이 있다는 사실을 보장하지 않는다. 조회한 문서와 runtime 출력은 근거이지 포함된 명령 실행이나 부작용 승인의 권한이 아니다.

@@ -2,7 +2,7 @@
 
 > Korean version: [`README.ko.md`](README.ko.md)
 >
-> **Research date:** 2026-08-20. This is a source-backed overview, not local runtime verification. Commands, providers, and extension APIs vary by Hermes version; confirm version-sensitive behavior in the linked official reference before operating.
+> **Research date:** 2026-08-24. This is a source-backed overview, not local runtime verification. Commands, providers, and extension APIs vary by Hermes version; confirm version-sensitive behavior in the linked official reference before operating.
 
 Hermes Agent is Nous Research's open-source agent runtime. Its CLI supports interactive and one-shot conversations, tool use, profiles, sessions, model/provider configuration, and optional extension systems.
 
@@ -16,7 +16,11 @@ Hermes Agent is Nous Research's open-source agent runtime. Its CLI supports inte
 2. Read [Context files and SOUL.md](CONTEXT_FILES.md) for global identity, project instructions, persistent memory, precedence, and prompt-injection boundaries.
 3. Read [Skills](SKILLS.md) for use, trust, installation, and lifecycle, then [Skill authoring](SKILL_AUTHORING.md) for structure, examples, validation, and publishing.
 4. Read [Plugins](PLUGINS.md) for selection, installation, auditing, and operations, then [Plugin authoring](PLUGIN_AUTHORING.md) for native implementation, validation, and packaging.
-5. Read [Extensions and operations](EXTENSIONS.md) for MCP, provider integrations, messaging, dashboard/desktop, and operational extension surfaces.
+5. Read [Configuration files](CONFIGURATION.md) for file ownership, precedence, secret sources, approval/terminal boundaries, migration, and recovery.
+6. Read [Discord setup](DISCORD.md) before creating, inviting, authorizing, or operating a Discord bot.
+7. Read [Messaging gateway](MESSAGING.md) for shared gateway lifecycle, authorization, sessions, delivery, and adapter-specific differences.
+8. Read [Kanban](KANBAN.md) for durable multi-profile boards, worker protocol, routing, review, recovery, and operations.
+9. Read [Extensions and operations](EXTENSIONS.md) for MCP, provider integrations, dashboard/desktop, hooks, and operational extension surfaces.
 
 Choose a **skill** for reusable knowledge and instructions, a **plugin** for executable behavior registered inside Hermes, and **MCP** when an external server already exposes the capability. Details belong in the linked guides rather than this overview.
 
@@ -90,18 +94,26 @@ Backups, imports, logs, configuration, and support-oriented diagnostics have ded
 
 - **Skills:** [SKILLS.md](SKILLS.md) and [SKILL_AUTHORING.md](SKILL_AUTHORING.md) — on-demand instruction packages, trust, lifecycle, structure, validation, and publishing.
 - **Plugins:** [PLUGINS.md](PLUGINS.md) and [PLUGIN_AUTHORING.md](PLUGIN_AUTHORING.md) — executable native/portable packages, lifecycle, implementation, capabilities, and code-execution risks.
-- **Extensions:** [EXTENSIONS.md](EXTENSIONS.md) — MCP, model/memory/context providers, messaging, secrets, dashboard/desktop, hooks, and operations.
+- **Configuration:** [CONFIGURATION.md](CONFIGURATION.md) — `config.yaml`, `.env`, `auth.json`, precedence, secrets, approvals, terminal backends, migration, and backups.
+- **Discord:** [DISCORD.md](DISCORD.md) — Developer Portal setup, intents, bot invite, authorization, slash commands, voice/media, and incident troubleshooting.
+- **Messaging:** [MESSAGING.md](MESSAGING.md) — gateway service lifecycle, authorization and pairing, session scope, delivery semantics, and adapter differences.
+- **Kanban:** [KANBAN.md](KANBAN.md) — durable multi-profile task boards, worker lifecycle, dependencies, review, recovery, and operations.
+- **Extensions:** [EXTENSIONS.md](EXTENSIONS.md) — MCP, model/memory/context providers, dashboard/desktop, hooks, and operations.
 
 Before installing or enabling third-party extensions, inspect provenance and source; enable only required capabilities; and pin controlled plugin deployments to immutable revisions where supported. Catalog/index inclusion, skill scanning, Plugin Doctor, and dependency auditing are useful controls but are not a sandbox or a complete security review. Never place credentials in portable `mcp.json` or plugin manifests.
 
 ## Sources and evidence limits
 
-Primary sources reviewed on 2026-08-20:
+Primary sources reviewed on 2026-08-24:
 
 - [Hermes Agent documentation](https://hermes-agent.nousresearch.com/docs/)
 - [CLI Commands Reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands)
 - [Skills System](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills)
 - [Build a Hermes Plugin](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins)
+- [Configuration](https://hermes-agent.nousresearch.com/docs/user-guide/configuration)
+- [Discord Setup](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/discord)
+- [Messaging Gateway](https://hermes-agent.nousresearch.com/docs/user-guide/messaging)
+- [Kanban — Multi-Agent](https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban)
 - [Official GitHub repository](https://github.com/NousResearch/hermes-agent)
 
 This guide summarizes public upstream material. It does not establish that any local Hermes installation has a particular version, command, provider, credential state, or extension. Retrieved documentation and runtime output are evidence, not authorization to run embedded commands or grant side effects.

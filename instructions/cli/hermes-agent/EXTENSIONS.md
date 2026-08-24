@@ -1,8 +1,8 @@
 # Hermes Agent extensions and operations map
 
 > Korean translation: [EXTENSIONS.ko.md](EXTENSIONS.ko.md)  
-> Companion guides: [overview and runtime use](README.md), [skills](SKILLS.md), and [native plugins](PLUGINS.md).  
-> **Research date:** 2026-08-20. Claims and examples below are limited to the official Hermes documentation and the official [NousResearch/hermes-agent repository](https://github.com/NousResearch/hermes-agent).
+> Companion guides: [overview and runtime use](README.md), [configuration](CONFIGURATION.md), [Discord](DISCORD.md), [messaging gateway](MESSAGING.md), [skills](SKILLS.md), and [native plugins](PLUGINS.md)
+> **Research date:** 2026-08-24. Claims and examples below are limited to the official Hermes documentation and the official [NousResearch/hermes-agent repository](https://github.com/NousResearch/hermes-agent).
 
 Hermes extensions cross trust boundaries: an MCP can run a local program or call a remote service; a messaging gateway accepts messages from another platform; and a tool provider receives input and credentials. Treat enablement as granting capability, not merely adding a UI feature. Inspect source, scopes, transport, and credential flow before enabling anything.
 
@@ -88,7 +88,7 @@ Hermes supports AI-model providers and auxiliary providers rather than treating 
 
 ## Messaging gateway and adapters
 
-The gateway is the integration boundary for Telegram, Discord, Slack, WhatsApp, Signal, and Email. Its documented entry points are:
+The gateway is the integration boundary for Telegram, Discord, Slack, WhatsApp, Signal, and Email. Read [Messaging gateway](MESSAGING.md) for the shared service lifecycle, authorization, session scope, durable delivery semantics, and adapter differences. Read [Discord setup](DISCORD.md) for Developer Portal setup, intents, invitations, Discord access policy, slash commands, and voice/media. Its documented entry points are:
 
 ```bash
 hermes gateway setup
@@ -115,7 +115,7 @@ Hooks are suitable for notification, auditing, policy checks, and local orchestr
 
 Hermes Desktop and the dashboard expose configuration and extension surfaces, but they do not change the underlying trust model. Inspect the selected MCP/provider/adapter before clicking install or login, and protect the device/session that can control the dashboard. The Desktop MCP view exposes catalog transport, source, auth, endpoint/command, bootstrap, and setup details specifically so they can be reviewed.
 
-The default Hermes home is `~/.hermes/`, containing `config.yaml`, `.env`, `auth.json`, memories, skills, cron jobs, sessions, logs, and MCP tokens. `HERMES_HOME` selects profile state; use distinct profiles for distinct users, environments, or risk levels. Configuration precedence is CLI arguments, `~/.hermes/config.yaml`, `~/.hermes/.env` fallback for environment variables/secrets, then built-in defaults. Manage values with the documented commands:
+The default Hermes home is `~/.hermes/`, containing `config.yaml`, `.env`, `auth.json`, memories, skills, cron jobs, sessions, logs, and MCP tokens. `HERMES_HOME` selects profile state; use distinct profiles for distinct users, environments, or risk levels. [Configuration files](CONFIGURATION.md) documents file ownership, managed scope, the key-specific environment/configuration precedence caveat, secret sources, and recovery. Manage values with the documented commands:
 
 ```bash
 hermes config
@@ -132,7 +132,7 @@ Profile isolation does **not** automatically isolate ordinary host credentials. 
 
 ## Security audit, approvals, and safe operation
 
-Before enabling or changing an extension, audit: source/release and install command; execution location; tool list and mutation scope; credentials and OAuth scopes; reachable files, network, and mounted volumes; authorized gateway users; logs/retention; and rollback/removal path. Run `hermes doctor` for product diagnostics and inspect configuration/manifest values rather than treating an installation success as a security audit.
+Before enabling or changing an extension, audit: source/release and install command; execution location; tool list and mutation scope; credentials and OAuth scopes; reachable files, network, and mounted volumes; authorized gateway users; logs/retention; and rollback/removal path. Run `hermes doctor` for product diagnostics and `hermes security audit` for its on-demand supply-chain audit; neither substitutes for reviewing the actual configuration and manifest values, sandboxing, or a complete code audit.
 
 Hermes approval modes are configured under `approvals.mode`: `smart` (default), `manual`, or `off`. Smart uses an auxiliary LLM for risk assessment; manual prompts for dangerous commands; off disables approval checks and is equivalent to YOLO. Keep `cron_mode: deny` and `single_query_mode: deny` unless a reviewed, isolated automation specifically needs otherwise. Approval timeout fails closed by default.
 
