@@ -3,42 +3,100 @@
   "artifacts": {
     "agents": {
       "files": [
-        { "path": "AGENTS.md", "mode": 420, "content": "# Project guidance\n\nPurpose: An agent skill.\n\nKeep changes within the requested workspace and inspect affected files before editing. Preserve established conventions, state assumptions that affect behavior, and use focused local verification for changed behavior. Keep project guidance separate from durable user preferences and agent identity.\n" }
+        {
+          "path": "AGENTS.md",
+          "mode": 420,
+          "content": "# Project Context\n\n{{summary}}\n\n## Architecture\n\n- Record the top-level layout here: entry points, packages, and shared modules.\n- Record the contract shapes that cross module boundaries.\n\n## Conventions\n\n- Use the package manager and toolchain declared by the repository lockfile.\n- Keep changes within the requested scope and update directly affected tests.\n- Follow existing naming and file placement instead of introducing a new pattern.\n\n## Safety\n\n- Never commit credentials or `.env` files.\n- Do not edit generated files by hand; regenerate them through the documented workflow.\n- Do not deploy, publish, or push unless the request explicitly asks for it.\n\n## Verification\n\n- Run the focused check for the changed behavior first, then the broader gate the area requires.\n- Report the commands actually run, their results, and anything left unverified.\n"
+        }
       ]
     },
     "memory-draft": {
       "files": [
-        { "path": "MEMORY.md.draft.md", "mode": 420, "content": "# Durable memory proposal\n\nPurpose: An agent skill.\n\nProposed memory: This intent should be handled with an explicit review of accuracy, relevance, and retention scope.\n\nRationale: The proposed memory records a stable working preference rather than a temporary task detail.\n\nReview each statement before manually recording it as durable memory. This draft changes no active memory.\n" }
+        {
+          "path": "MEMORY.md.draft.md",
+          "mode": 420,
+          "content": "# MEMORY.md proposal\n\nThis is a review draft. It changes no active Hermes memory.\n\n## Purpose\n\n{{summary}}\n\n## Proposed entries\n\n- Environment fact: a durable, verifiable detail about this machine or project.\n- Correction: a lesson that should not have to be rediscovered.\n\nKeep the final content under 2,200 characters, which is the default `MEMORY.md` limit.\n\n## Excluded on purpose\n\n- Secrets, tokens, and credentials.\n- Large data, copied logs, and transient debugging state.\n- Facts that are cheap to rediscover from the repository.\n\n## How to apply\n\n1. Review each proposed line for accuracy.\n2. Ask Hermes to record the approved lines through its memory tool.\n3. Start a new session, because the memory snapshot is frozen for the current one.\n"
+        }
       ]
     },
     "native-plugin": {
       "files": [
-        { "path": "__init__.py", "mode": 420, "content": "\"\"\"agent-plugin native plugin.\"\"\"\n\nfrom .tools import register\n\n__all__ = [\"register\"]\n" },
-        { "path": "plugin.yaml", "mode": 420, "content": "name: agent-plugin\nversion: 1.0.0\nentrypoint: tools:register\nsummary: An agent skill.\ntools:\n  - agent-plugin.respond\n" },
-        { "path": "schemas.py", "mode": 420, "content": "REQUEST_SCHEMA = {\n    \"type\": \"object\",\n    \"description\": \"Return a concise local response for the declared intent.\",\n    \"additionalProperties\": False,\n    \"properties\": {\n        \"request\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 2000}\n    },\n    \"required\": [\"request\"],\n}\n" },
-        { "path": "tools.py", "mode": 420, "content": "import json\n\nfrom .schemas import REQUEST_SCHEMA\n\nPLUGIN_NAME = \"agent-plugin\"\nPLUGIN_INTENT = \"An agent skill.\"\n\ndef handle(arguments, **kwargs):\n    del kwargs\n    try:\n        request = arguments[\"request\"]\n        if not isinstance(request, str):\n            raise ValueError(\"request must be text\")\n        value = request.strip()\n        if not value or len(value) > 2000:\n            raise ValueError(\"request must contain 1 to 2000 characters\")\n        return json.dumps({\"intent\": PLUGIN_INTENT, \"result\": f\"{PLUGIN_NAME}: {value}\"}, ensure_ascii=False)\n    except (KeyError, TypeError, ValueError) as error:\n        return json.dumps({\"error\": str(error)}, ensure_ascii=False)\n\ndef register(ctx):\n    ctx.register_tool(\n        name=f\"{PLUGIN_NAME}.respond\",\n        toolset=PLUGIN_NAME,\n        schema=REQUEST_SCHEMA,\n        handler=handle,\n    )\n" }
+        {
+          "path": "__init__.py",
+          "mode": 420,
+          "content": "\"\"\"{{name}} plugin registration.\"\"\"\n\nimport logging\n\nfrom .schemas import RUN_SCHEMA\nfrom .tools import run\n\nlogger = logging.getLogger(__name__)\n\nTOOLSET = \"{{name}}\"\nTOOL_NAME = \"{{name}}.run\"\n\n\ndef _after_tool_call(tool_name, args, result, task_id, **kwargs):\n    \"\"\"Observe completed tool calls without echoing argument or result values.\"\"\"\n    del args, result, kwargs\n    logger.debug(\"tool=%s task_id=%s\", tool_name, task_id)\n\n\ndef register(ctx):\n    \"\"\"Register the plugin surfaces once at startup.\"\"\"\n    ctx.register_tool(\n        name=TOOL_NAME,\n        toolset=TOOLSET,\n        schema=RUN_SCHEMA,\n        handler=run,\n    )\n    ctx.register_hook(\"post_tool_call\", _after_tool_call)\n\n\n__all__ = [\"register\"]\n"
+        },
+        {
+          "path": "plugin.yaml",
+          "mode": 420,
+          "content": "manifest_version: 2\nname: {{name}}\nversion: 1.0.0\ndescription: {{summary}}\nprovides_tools:\n  - {{name}}.run\nprovides_hooks:\n  - post_tool_call\n"
+        },
+        {
+          "path": "schemas.py",
+          "mode": 420,
+          "content": "\"\"\"Model-facing schema for {{name}}.\"\"\"\n\nRUN_SCHEMA = {\n    \"name\": \"{{name}}.run\",\n    \"description\": \"{{summary}} Accepts one request string and returns a JSON object.\",\n    \"parameters\": {\n        \"type\": \"object\",\n        \"additionalProperties\": False,\n        \"properties\": {\n            \"request\": {\n                \"type\": \"string\",\n                \"description\": \"The request to handle, 1 to 2000 characters.\",\n                \"minLength\": 1,\n                \"maxLength\": 2000,\n            }\n        },\n        \"required\": [\"request\"],\n    },\n}\n"
+        },
+        {
+          "path": "tools.py",
+          "mode": 420,
+          "content": "\"\"\"Handler for {{name}}.\"\"\"\n\nimport json\n\nPLUGIN_NAME = \"{{name}}\"\nPLUGIN_PURPOSE = \"{{summary}}\"\nMAX_REQUEST_LENGTH = 2000\n\n\ndef _validated_request(args):\n    \"\"\"Return the trusted request string or raise ValueError.\"\"\"\n    if not isinstance(args, dict):\n        raise ValueError(\"arguments must be an object\")\n    value = args.get(\"request\")\n    if not isinstance(value, str):\n        raise ValueError(\"request must be a string\")\n    value = value.strip()\n    if not value:\n        raise ValueError(\"request must not be empty\")\n    if len(value) > MAX_REQUEST_LENGTH:\n        raise ValueError(\"request must be at most 2000 characters\")\n    return value\n\n\ndef run(args, **kwargs):\n    \"\"\"Return a JSON string for both success and expected failure.\"\"\"\n    del kwargs\n    try:\n        request = _validated_request(args)\n    except ValueError as error:\n        return json.dumps({\"error\": str(error)}, ensure_ascii=False)\n    return json.dumps(\n        {\n            \"plugin\": PLUGIN_NAME,\n            \"purpose\": PLUGIN_PURPOSE,\n            \"request\": request,\n            \"status\": \"received\",\n        },\n        ensure_ascii=False,\n    )\n"
+        }
       ]
     },
     "portable-plugin": {
       "files": [
-        { "path": "plugin.json", "mode": 420, "content": "{\n  \"$schema\": \"https://agentplugins.dev/schemas/v1.0.0/plugin.schema.json\",\n  \"components\": {\n    \"skills\": [\"skills/agent-plugin\"]\n  },\n  \"description\": \"An agent skill.\",\n  \"name\": \"agent-plugin\",\n  \"version\": \"1.0.0\"\n}\n" },
-        { "path": "skills/agent-plugin/SKILL.md", "mode": 420, "content": "---\nname: agent-plugin\ndescription: An agent skill.\n---\n\n# agent-plugin\n\nPurpose: An agent skill.\n\nUse this packaged skill to guide a focused local workflow. Gather the relevant facts, state the bounded decision, and produce a concrete result that matches the declared purpose. Preserve user control over changes.\n" }
+        {
+          "path": "plugin.json",
+          "mode": 420,
+          "content": "{\n  \"$schema\": \"https://agentplugins.dev/schemas/v1.0.0/plugin.schema.json\",\n  \"components\": {\n    \"skills\": [\"skills/{{name}}\"]\n  },\n  \"description\": \"{{summary}}\",\n  \"name\": \"{{name}}\",\n  \"version\": \"1.0.0\"\n}\n"
+        },
+        {
+          "path": "skills/{{name}}/SKILL.md",
+          "mode": 420,
+          "content": "---\nname: {{name}}\ndescription: {{summary}}\n---\n\n# {{name}}\n\n## When to Use\n\nUse this packaged skill when the request matches this purpose: {{summary}}\n\n## Procedure\n\n1. Confirm the concrete target and the observable success condition.\n2. Gather the local evidence the task depends on.\n3. Produce the smallest result that fully covers the request.\n4. Report the result, the evidence used, and any remaining uncertainty.\n\n## Boundary\n\nThis package carries instructions only. It registers no native tool, hook, command, or provider, and it holds no secret value.\n"
+        }
       ]
     },
     "skill": {
       "files": [
-        { "path": "SKILL.ko.md", "mode": 420, "content": "---\nname: agent-skill\ndescription: An agent skill.\n---\n\n# agent-skill\n\n목적: An agent skill.\n\n관련 사실을 먼저 확인하고, 필요한 결정은 한 번에 하나씩 명확히 합니다. 변경이 필요한 경우 범위와 예상 결과를 제시한 뒤 승인된 변경만 적용합니다. 결과에는 근거와 확인 방법을 포함합니다.\n" },
-        { "path": "SKILL.md", "mode": 420, "content": "---\nname: agent-skill\ndescription: An agent skill.\n---\n\n# agent-skill\n\nPurpose: An agent skill.\n\nInspect the relevant facts first and make one necessary decision at a time. When a change is needed, state its scope and expected result, then apply only the approved change. Include evidence and a focused way to verify the result.\n" }
+        {
+          "path": "SKILL.ko.md",
+          "mode": 420,
+          "content": "---\nname: {{name}}\ndescription: {{summary}}\nversion: 1.0.0\nplatforms: [macos, linux]\nmetadata:\n  hermes:\n    tags: [{{name}}]\n---\n\n# {{name}}\n\n## 언제 사용하나요\n\n다음 목적에 맞는 요청일 때 사용합니다: {{summary}}\n\n관련 없는 작업에는 쓰지 않습니다. 사용자가 분명히 요청하지 않으면 배포하거나 원격 상태를 바꾸지 않습니다.\n\n## 절차\n\n1. `${HERMES_SKILL_DIR}/references/procedure.md`를 읽고 요청의 실제 대상을 확인합니다.\n2. 작업에 필요한 로컬 근거를 모으고, 확인된 사실과 가정을 구분해 적어 둡니다.\n3. 요청을 충분히 만족하는 가장 작은 변경 또는 답변을 만듭니다.\n4. 문서를 쓸 때는 `${HERMES_SKILL_DIR}/templates/output.md`에서 시작합니다.\n5. 결과, 사용한 근거, 남은 불확실성을 함께 보고합니다.\n\n## 자주 하는 실수\n\n- 제목이나 파일 이름만 보고 요구사항을 짐작하지 않습니다.\n- 요청 범위를 넘어서 작업을 넓히지 않습니다.\n- 실행하지 않은 명령이나 읽지 않은 파일을 확인된 사실처럼 말하지 않습니다.\n\n## 확인 방법\n\n모든 사실 진술에 로컬 근거가 있는지, 범위가 요청과 같은지, 요청하지 않은 부수 효과가 없는지 확인합니다.\n"
+        },
+        {
+          "path": "SKILL.md",
+          "mode": 420,
+          "content": "---\nname: {{name}}\ndescription: {{summary}}\nversion: 1.0.0\nplatforms: [macos, linux]\nmetadata:\n  hermes:\n    tags: [{{name}}]\n---\n\n# {{name}}\n\n## When to Use\n\nUse this skill when the request matches this purpose: {{summary}}\n\nDo not use it for unrelated work, and do not publish, deploy, or change remote state unless the user explicitly asks for it.\n\n## Procedure\n\n1. Read `${HERMES_SKILL_DIR}/references/procedure.md` and confirm the concrete target of the request.\n2. Collect the local evidence the task depends on, and record what is known versus assumed.\n3. Do the smallest change or produce the smallest answer that fully covers the request.\n4. Start any written output from `${HERMES_SKILL_DIR}/templates/output.md`.\n5. Report the result, the evidence used, and every remaining uncertainty.\n\n## Pitfalls\n\n- Do not infer a requirement from a title or filename alone.\n- Do not widen the scope beyond what the user asked for.\n- Do not present an unrun command or an unread file as a verified fact.\n\n## Verification\n\nConfirm that every factual statement has local evidence, that the scope matches the request, and that no unrequested side effect happened.\n"
+        },
+        {
+          "path": "references/procedure.md",
+          "mode": 420,
+          "content": "# Procedure detail\n\nLoad this file only when the short procedure in `SKILL.md` is not enough.\n\n## Purpose\n\n{{summary}}\n\n## Inputs to confirm first\n\n- The exact target: file, directory, service, or document the user means.\n- The success condition the user can observe.\n- The boundary: what must stay unchanged.\n\n## Working rules\n\n- Prefer local evidence over recall; read the file before describing it.\n- Keep one decision per step so a wrong step is cheap to undo.\n- When two readings of the request lead to different work, ask one short question.\n\n## Failure handling\n\n- Missing input: state exactly which value is missing and stop.\n- Conflicting instruction: follow the user's latest explicit request and name the conflict.\n- Unverifiable claim: label it as unverified instead of dropping it silently.\n"
+        },
+        {
+          "path": "templates/output.md",
+          "mode": 420,
+          "content": "# {{name}} result\n\n## Summary\n\nOne or two sentences describing what was produced for: {{summary}}\n\n## Details\n\n- What was inspected\n- What was changed or decided\n- What was intentionally left alone\n\n## Evidence\n\n- Files read\n- Commands run and their results\n\n## Remaining risk\n\n- Open questions or unverified assumptions\n"
+        }
       ]
     },
     "soul": {
       "files": [
-        { "path": "SOUL.md", "mode": 420, "content": "# Identity and tone\n\nPurpose: An agent skill.\n\nBe calm, precise, and honest. Explain trade-offs plainly, distinguish confirmed facts from assumptions, and protect user control. Prefer direct, useful answers and acknowledge uncertainty without inventing certainty.\n" }
+        {
+          "path": "SOUL.md",
+          "mode": 420,
+          "content": "# Personality\n\n{{summary}}\n\n## Communication\n\n- Be direct, calm, and concise; add depth only when the decision needs it.\n- State assumptions and uncertainty plainly instead of implying false confidence.\n- Correct an incorrect premise respectfully rather than repeating it.\n- Explain the decision and the operational consequence, not just the conclusion.\n\n## Technical posture\n\n- Prefer simple, maintainable solutions over clever ones.\n- Treat security, failure modes, and edge cases as design work.\n- Separate observed facts from recommendations.\n\n## Avoid\n\n- Hype, flattery, filler, and invented certainty.\n- Restating the request when a concrete answer is available.\n- Project paths, commands, and temporary tasks; those belong in project context.\n"
+        }
       ]
     },
     "user-draft": {
       "files": [
-        { "path": "USER.md.draft.md", "mode": 420, "content": "# User profile proposal\n\nPurpose: An agent skill.\n\nProposed preference: The user wants work on this intent to be reviewed for accuracy and scope before it is retained.\n\nRationale: This preference supports clear, user-directed outcomes.\n\nReview the statement for accuracy and consent before manually recording it in an active profile. This draft changes no active profile.\n" }
+        {
+          "path": "USER.md.draft.md",
+          "mode": 420,
+          "content": "# USER.md proposal\n\nThis is a review draft. It changes no active Hermes memory.\n\n## Purpose\n\n{{summary}}\n\n## Proposed entries\n\n- Preference: describe one stable, observable working preference.\n- Preference: describe a second one only if it is durable across projects.\n\nKeep the final content under 1,375 characters, which is the default `USER.md` limit.\n\n## Excluded on purpose\n\n- Secrets, tokens, and credentials.\n- Temporary task state and one-off debugging details.\n- Facts that already live in `SOUL.md` or project context files.\n\n## How to apply\n\n1. Review each proposed line for accuracy and consent.\n2. Ask Hermes to record the approved lines through its memory tool.\n3. Start a new session, because the memory snapshot is frozen for the current one.\n"
+        }
       ]
     }
   }
