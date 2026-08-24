@@ -6,8 +6,6 @@ compatibility: Requires repository-scoped read/edit execution plus Bun or Node t
 
 @rules/routing.md
 @rules/write-safety.md
-@references/artifact-contracts.md
-@references/portable-agent-plugins-v1.md
 
 # Hermes Agent Maker
 

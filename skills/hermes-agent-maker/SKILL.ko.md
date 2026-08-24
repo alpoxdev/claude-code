@@ -6,8 +6,6 @@ compatibility: 로컬 생성기와 portable 검증기를 실행하려면 저장�
 
 @rules/routing.ko.md
 @rules/write-safety.ko.md
-@references/artifact-contracts.ko.md
-@references/portable-agent-plugins-v1.ko.md
 
 # Hermes Agent Maker
 
