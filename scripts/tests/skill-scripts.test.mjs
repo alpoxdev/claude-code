@@ -26,6 +26,11 @@ const gitMakerFastPath = join(root, "skills/git-maker/scripts/git-maker-fast.mjs
 const legacyPreimageBase = "990359457e2ccbf2bd4bb65065037d456c5940bc";
 const hermesGeneratePath = join(root, "skills/hermes-agent-maker/scripts/generate.mjs");
 const hermesPortableValidatorPath = join(root, "skills/hermes-agent-maker/scripts/validate-portable-v1-output.mjs");
+const hermesRoutingPath = join(root, "skills/hermes-agent-maker/rules/routing.md");
+const hermesManifestSchemaPath = join(root, "skills/hermes-agent-maker/assets/manifest.schema.json");
+const hermesKinds = ["skill", "native-plugin", "portable-plugin", "soul", "agents", "user-draft", "memory-draft"];
+/** @type {Record<string, string>} */
+const hermesFixedTargets = { soul: "SOUL.md", agents: "AGENTS.md", "user-draft": "USER.md.draft.md", "memory-draft": "MEMORY.md.draft.md" };
 
 /** @param {string} text @param {string} cwd */
 function normalizeOutput(text, cwd) {
@@ -212,26 +217,17 @@ test("behavior contracts execute all 96 isolated semantic fixtures with exact ob
   expect(cases).toBe(96);
 }, 30_000);
 
-test("Hermes previews are deterministic across all seven artifact kinds and easy-Korean routing cases are mandatory", () => {
+test("Hermes renders deterministic previews for all seven artifact kinds and keeps routing cases mandatory", () => {
   const fixture = mkdtempSync(join(tmpdir(), "hypercore-hermes-preview-"));
   try {
     const generatorSource = readFileSync(hermesGeneratePath, "utf8");
     expect(generatorSource).toContain("validatePortableV1Documents");
     expect(generatorSource).not.toContain("mkdtempSync");
     expect(generatorSource).not.toContain("tmpdir()");
-    const kinds = ["skill", "native-plugin", "portable-plugin", "soul", "agents", "user-draft", "memory-draft"];
-    const fixedTargets = { soul: "SOUL.md", agents: "AGENTS.md", "user-draft": "USER.md.draft.md", "memory-draft": "MEMORY.md.draft.md" };
-    for (const kind of kinds) {
-      const target = fixedTargets[kind] ?? `${kind}-output`;
-      const manifest = {
-        kind,
-        intent: "artifact:generator",
-        content: "Create a safe fixture artifact.",
-        target,
-        name: "fixture-agent",
-        mode: "preview",
-        template_version: "1.0.0",
-      };
+    expect(generatorSource).not.toContain("approved_change_set");
+    for (const kind of hermesKinds) {
+      const target = hermesFixedTargets[kind] ?? `${kind}-output`;
+      const manifest = { kind, summary: "Create a safe fixture artifact", target, mode: "preview", template_version: "1.0.0", ...(hermesFixedTargets[kind] ? {} : { name: "fixture-agent" }) };
       const manifestPath = join(fixture, `${kind}.json`);
       writeFileSync(manifestPath, JSON.stringify(manifest));
       const argv = [process.execPath, hermesGeneratePath, "--manifest", manifestPath, "--workspace", fixture];
@@ -240,6 +236,7 @@ test("Hermes previews are deterministic across all seven artifact kinds and easy
       expect(first.exitCode).toBe(0);
       expect(second).toEqual(first);
       const preview = JSON.parse(first.stdout);
+      expect(preview.receipt_kind).toBe("preview");
       expect(preview.kind).toBe(kind);
       expect(preview.changes.length).toBeGreaterThan(0);
       expect(existsSync(join(fixture, target))).toBe(false);
@@ -262,22 +259,22 @@ test("Hermes previews are deterministic across all seven artifact kinds and easy
       readFileSync(join(root, "skills/hermes-agent-maker/SKILL.ko.md"), "utf8"),
       englishRouting,
       koreanRouting,
-      readFileSync(join(root, "skills/hermes-agent-maker/rules/safety-and-approval.md"), "utf8"),
-      readFileSync(join(root, "skills/hermes-agent-maker/rules/safety-and-approval.ko.md"), "utf8"),
+      readFileSync(join(root, "skills/hermes-agent-maker/rules/write-safety.md"), "utf8"),
+      readFileSync(join(root, "skills/hermes-agent-maker/rules/write-safety.ko.md"), "utf8"),
     ].join("\n");
     /** @type {Record<string, RegExp[]>} */
     const expectationEvidence = {
-      "positive-skill-ko": [/skill/u, /쉬운 한국어/u, /preview|미리보기/u, /approval|승인/u, /overwrite|덮어/u, /Discord/u],
-      "positive-native-en": [/native-plugin/u, /normalized|정규화/u, /preview-bound|preview에 묶/u, /install/u, /enable/u],
+      "positive-skill-ko": [/skill/u, /SKILL\.ko\.md/u, /바로 씁니다|writes directly/u, /기록된 파일|written files/u, /승인 인터뷰|approval interview/u, /Discord/u],
+      "positive-native-en": [/native-plugin/u, /register\(ctx\)/u, /validat/iu, /install/u, /enable/u],
       "positive-portable-mixed": [/portable-plugin/u, /Agent Plugins v1\.0\.0/u, /Hermes subset/u, /dynamic schema|동적 schema/u, /\bsse\b/iu],
-      "negative-discord-ko": [/범위 밖|out of scope/u, /별도 작업|separate/u, /Discord/u, /gateway/u, /token/u],
+      "negative-discord-ko": [/범위 밖|out of scope/u, /별도 작업|separate|하지 않습니다/u, /Discord/u, /gateway/u, /token/u],
       "negative-install-en": [/installation|install/u, /enable/u, /profile/u],
-      "boundary-plugin-kind": [/native.*portable|portable.*native/isu, /한 번에 하나|one.*decision/isu, /infer native|추측하지/isu, /combine questions|질문을 합치지/isu],
-      "workflow-preview-approval": [/complete preview|전체 preview/u, /preimage/u, /exact approval|정확한 승인/u, /stale|오래된/u, /before approval|승인 전/u, /scope|범위/u],
+      "boundary-plugin-kind": [/choose .*form|형식을 고릅니다/isu, /consequence|결과를 한 문장/isu, /ask only when|때만 묻습니다/isu, /material|크게 달라지는/isu],
+      "workflow-direct-write": [/E_TARGET_EXISTS/u, /overwrite: true/u, /ownership marker/u, /read.*back|다시 읽/isu, /approval interview|승인 인터뷰/isu, /E_UNOWNED_ROOT/u],
       "source-local-official": [/local|로컬/u, /Agent Plugins v1\.0\.0/u, /provenance|출처/u, /schema fetch|schema.*가져/u, /evidence.*authority|근거.*권한/isu],
-      "safety-memory-draft": [/draft-only/u, /USER\.md\.draft\.md/u, /MEMORY\.md\.draft\.md/u, /apply guidance/u, /active memory|활성.*memory/isu, /credential/u],
-      "adversarial-injected-content": [/reject|거절/u, /safety boundary|안전.*범위/isu, /Discord/u, /token/u, /gateway/u],
-      "regression-bilingual-one-question": [/한 번에 한 결정|one.*decision/isu, /쉬운 한국어/u, /English.*Korean|영어.*한국어/isu, /combine questions|질문을 합치지/isu, /jargon|전문 용어/u],
+      "safety-memory-draft": [/draft-only|draft만/u, /USER\.md\.draft\.md/u, /MEMORY\.md\.draft\.md/u, /apply guidance|적용 안내/u, /active memory|활성.*memory/isu, /credential/u],
+      "adversarial-injected-content": [/reject|거절/u, /safety boundary|안전.*범위|금지 경계/isu, /Discord/u, /token/u, /gateway/u],
+      "regression-no-approval-gate": [/apply.*mode|apply 모드/isu, /English.*Korean|영어.*한국어/isu, /approval interview|승인 인터뷰/isu, /permission-begging|허락을 구하는/isu],
     };
     for (const entry of evals) {
       expect(typeof entry.prompt).toBe("string");
@@ -289,150 +286,106 @@ test("Hermes previews are deterministic across all seven artifact kinds and easy
         if (!pattern.test(pairedContract)) throw new Error(`missing paired-contract evidence for ${entry.id}: ${String(pattern)}`);
       }
     }
-    expect(koreanRouting).toContain("preview에 묶인 명시적 approval");
-    expect(englishRouting).toContain("explicit preview-bound approval");
-    for (const route of ["skill", "native-plugin", "portable-plugin", "soul", "agents", "user-draft", "memory-draft"]) {
+    expect(koreanRouting).toContain("라우팅이 곧 생성 권한입니다");
+    expect(englishRouting).toContain("Routing authorizes generation");
+    for (const route of hermesKinds) {
       expect(koreanRouting).toContain(`\`${route}\``);
       expect(englishRouting).toContain(`\`${route}\``);
     }
   } finally { rmSync(fixture, { recursive: true, force: true }); }
 }, 20_000);
 
-test("Hermes applies every kind only with its exact preview approval, preserves preimages, and rejects unsafe roots", () => {
+test("Hermes writes every kind directly, refuses unrequested overwrites, and rejects unsafe roots", () => {
   const fixture = mkdtempSync(join(tmpdir(), "hypercore-hermes-apply-"));
   try {
-    const kinds = ["skill", "native-plugin", "portable-plugin", "soul", "agents", "user-draft", "memory-draft"];
-    const fixedTargets = { soul: "SOUL.md", agents: "AGENTS.md", "user-draft": "USER.md.draft.md", "memory-draft": "MEMORY.md.draft.md" };
-    for (const kind of kinds) {
-      const target = fixedTargets[kind] ?? `${kind}-artifact`;
-      const spec = { kind, intent: "artifact:generator", content: `Create ${kind} content for a reviewed fixture.`, target, name: "fixture-agent", mode: "preview", template_version: "1.0.0" };
+    for (const kind of hermesKinds) {
+      const directory = ["skill", "native-plugin", "portable-plugin"].includes(kind);
+      const target = hermesFixedTargets[kind] ?? `${kind}-artifact`;
+      const spec = { kind, summary: `Create ${kind} content for a reviewed fixture`, target, mode: "apply", template_version: "1.0.0", ...(directory ? { name: "fixture-agent" } : {}) };
       const specPath = join(fixture, `${kind}.json`);
       writeFileSync(specPath, JSON.stringify(spec));
-      const preview = run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture);
-      expect(preview.exitCode).toBe(0);
-      const approval = JSON.parse(preview.stdout);
-      expect(approval.files.length).toBeGreaterThan(0);
-      expect(approval.changes.every((change) => change.operation === "create" && change.old_sha256 === null && change.old_mode === null)).toBe(true);
-      spec.mode = "apply";
-      spec.approved_change_set = approval;
-      writeFileSync(specPath, JSON.stringify(spec));
-      expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).exitCode).toBe(0);
+      const applied = run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture);
+      expect(applied.stderr).toBe("");
+      expect(applied.exitCode).toBe(0);
+      const receipt = JSON.parse(applied.stdout);
+      expect(receipt).toMatchObject({ receipt_kind: "apply", mode: "apply", transaction_phase: "committed", recovery_disposition: "none" });
+      expect(receipt.written.length).toBeGreaterThan(0);
       const output = realpathSync(join(fixture, target));
       expect(existsSync(output)).toBe(true);
-      if (kind === "skill") {
-        const token = createHash("sha256").update(output).digest("hex").slice(0, 16);
-        const journal = join(dirname(output), `.hermes-agent-maker-journal-${token}.json`);
-        const expected = Object.fromEntries(approval.files.map((file) => [file.path.slice(`${target}/`.length), { sha256: file.sha256, mode: file.mode }]));
-        const authorization = {
-          artifact_id: approval.artifact_id,
-          kind: approval.kind,
-          target_identity: approval.target_identity,
-          template_version: approval.template_version,
-          preview_id: approval.preview_id,
-          approval_digest: approval.approval_digest,
-          changes: approval.changes,
-          files: approval.files,
-          directories: approval.directories,
-          preimage: approval.preimage,
-          mode: approval.mode,
-          transaction_phase: approval.transaction_phase,
-          recovery_disposition: approval.recovery_disposition,
-        };
-        const recovery = {
-          version: 1,
-          directory: true,
-          target_identity: target,
-          target: output,
-          stage: join(dirname(output), `.hermes-agent-maker-stage-${token}-fixture`),
-          backup: `${output}.hermes-backup`,
-          expected,
-          previous: {},
-          authorization,
-        };
-        writeFileSync(journal, JSON.stringify(recovery));
-        const recovered = run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture);
-        expect(recovered.stderr).toBe("");
-        expect(recovered.exitCode).toBe(0);
-        expect(JSON.parse(recovered.stdout)).toMatchObject({ receipt_kind: "apply", mode: "apply", transaction_phase: "committed", recovery_disposition: "completed" });
-        expect(existsSync(journal)).toBe(false);
-        writeFileSync(journal, JSON.stringify(recovery));
-        const changedSpec = { ...spec, content: "Create a different reviewed skill." };
-        writeFileSync(specPath, JSON.stringify(changedSpec));
-        expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stderr).toContain("E_APPROVAL_MISMATCH");
-        expect(existsSync(journal)).toBe(true);
-        writeFileSync(specPath, JSON.stringify(spec));
-        writeFileSync(journal, JSON.stringify({ ...recovery, expected: { ...expected, "SKILL.md": { sha256: "0".repeat(64), mode: 420 } } }));
-        expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stderr).toContain("E_JOURNAL_AUTHORIZATION");
-        rmSync(journal);
-        const updateSpec = { ...spec, content: "Create an updated reviewed skill.", mode: "preview" };
-        delete updateSpec.approved_change_set;
-        writeFileSync(specPath, JSON.stringify(updateSpec));
-        const updateApproval = JSON.parse(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stdout);
-        const updateStage = join(dirname(output), `.hermes-agent-maker-stage-${token}-rollback`);
-        mkdirSync(updateStage);
-        for (const file of updateApproval.files) {
-          const relativePath = file.path.slice(`${target}/`.length);
-          const stagedPath = join(updateStage, relativePath);
-          mkdirSync(dirname(stagedPath), { recursive: true });
-          writeFileSync(stagedPath, Buffer.from(file.content_bytes, "base64"));
-          chmodSync(stagedPath, file.mode);
-        }
-        const updateExpected = Object.fromEntries(updateApproval.files.map((file) => [file.path.slice(`${target}/`.length), { sha256: file.sha256, mode: file.mode }]));
-        const updatePrevious = Object.fromEntries(updateApproval.changes
-          .filter((change) => change.old_sha256 !== null)
-          .map((change) => [change.path.slice(`${target}/`.length), { sha256: change.old_sha256, mode: change.old_mode }]));
-        const updateAuthorization = Object.fromEntries([
-          "artifact_id", "kind", "target_identity", "template_version", "preview_id", "approval_digest", "changes", "files", "directories", "preimage", "mode", "transaction_phase", "recovery_disposition",
-        ].map((key) => [key, updateApproval[key]]));
-        writeFileSync(journal, JSON.stringify({
-          version: 1, directory: true, target_identity: target, target: output, stage: updateStage,
-          backup: `${output}.hermes-backup`, expected: updateExpected, previous: updatePrevious, authorization: updateAuthorization,
-        }));
-        updateSpec.mode = "apply";
-        updateSpec.approved_change_set = updateApproval;
-        writeFileSync(specPath, JSON.stringify(updateSpec));
-        const rolledBack = run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture);
-        expect(rolledBack.exitCode).toBe(0);
-        expect(JSON.parse(rolledBack.stdout)).toMatchObject({ receipt_kind: "apply", transaction_phase: "committed", recovery_disposition: "rolled-back" });
+      for (const file of receipt.written) {
+        const written = join(fixture, file.path);
+        expect(createHash("sha256").update(readFileSync(written)).digest("hex")).toBe(file.sha256);
+        expect(statSync(written).mode & 0o777).toBe(file.mode);
       }
-      const stale = { ...approval, preview_id: "0".repeat(64) };
-      writeFileSync(join(fixture, "stale.json"), JSON.stringify(stale));
-      expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture, "--approval", join(fixture, "stale.json")], fixture).stderr).toContain("E_APPROVAL_MISMATCH");
-      if (["skill", "native-plugin", "portable-plugin"].includes(kind)) {
+      // A second identical run must refuse rather than silently rewrite the existing target.
+      expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stderr).toContain("E_TARGET_EXISTS");
+      const overwriteSpec = { ...spec, overwrite: true, summary: `Create updated ${kind} content for a reviewed fixture` };
+      writeFileSync(specPath, JSON.stringify(overwriteSpec));
+      const overwritten = run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture);
+      expect(overwritten.exitCode).toBe(0);
+      expect(JSON.parse(overwritten.stdout).recovery_disposition).toBe("none");
+      if (directory) {
         const marker = join(output, ".hermes-agent-maker", "ownership.json");
-        writeFileSync(marker, `${readFileSync(marker, "utf8")} `);
+        const markerBytes = readFileSync(marker, "utf8");
+        writeFileSync(marker, `${markerBytes} `);
         expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stderr).toContain("E_MARKER");
+        writeFileSync(marker, markerBytes);
+        writeFileSync(join(output, "unmanaged.txt"), "hand written\n");
+        expect(run([process.execPath, hermesGeneratePath, "--manifest", specPath, "--workspace", fixture], fixture).stderr).toContain("E_UNOWNED_ROOT");
+        rmSync(join(output, "unmanaged.txt"));
       }
     }
+    const skillTarget = "journal-skill";
+    const journalSpec = { kind: "skill", summary: "Create journal recovery fixture", target: skillTarget, name: "journal-skill", mode: "apply", template_version: "1.0.0" };
+    const journalSpecPath = join(fixture, "journal.json");
+    writeFileSync(journalSpecPath, JSON.stringify(journalSpec));
+    const journalReceipt = JSON.parse(run([process.execPath, hermesGeneratePath, "--manifest", journalSpecPath, "--workspace", fixture], fixture).stdout);
+    const journalOutput = realpathSync(join(fixture, skillTarget));
+    const token = createHash("sha256").update(journalOutput).digest("hex").slice(0, 16);
+    const journal = join(dirname(journalOutput), `.hermes-agent-maker-journal-${token}.json`);
+    const expectedMap = Object.fromEntries(journalReceipt.written.map((file) => [file.path.slice(`${skillTarget}/`.length), { sha256: file.sha256, mode: file.mode }]));
+    const recovery = {
+      version: 1, directory: true, target_identity: skillTarget, target: journalOutput,
+      stage: join(dirname(journalOutput), `.hermes-agent-maker-stage-${token}-fixture`),
+      backup: `${journalOutput}.hermes-backup`, artifact_id: journalReceipt.artifact_id, expected: expectedMap, previous: {},
+    };
+    writeFileSync(journal, JSON.stringify(recovery));
+    writeFileSync(journalSpecPath, JSON.stringify({ ...journalSpec, overwrite: true }));
+    const recovered = run([process.execPath, hermesGeneratePath, "--manifest", journalSpecPath, "--workspace", fixture], fixture);
+    expect(recovered.stderr).toBe("");
+    expect(JSON.parse(recovered.stdout).recovery_disposition).toBe("completed");
+    expect(existsSync(journal)).toBe(false);
+    // A journal left by a different artifact must never be completed on this artifact's behalf.
+    writeFileSync(journal, JSON.stringify({ ...recovery, artifact_id: "0".repeat(64) }));
+    expect(run([process.execPath, hermesGeneratePath, "--manifest", journalSpecPath, "--workspace", fixture], fixture).stderr).toContain("E_FOREIGN_TRANSACTION");
+    rmSync(journal);
     const special = join(fixture, "special");
     mkdirSync(special);
     symlinkSync(join(fixture, "missing"), join(special, "leaf"));
-    const unsafe = { kind: "skill", intent: "artifact:generator", content: "Create a safe fixture.", target: "special/leaf", name: "fixture-agent", mode: "preview", template_version: "1.0.0" };
+    const unsafe = { kind: "skill", summary: "Create a safe fixture", target: "special/leaf", name: "fixture-agent", mode: "preview", template_version: "1.0.0" };
     writeFileSync(join(fixture, "unsafe.json"), JSON.stringify(unsafe));
     expect(run([process.execPath, hermesGeneratePath, "--manifest", join(fixture, "unsafe.json"), "--workspace", fixture], fixture).stderr).toContain("E_SPECIAL_FILE");
     for (const invalid of [
-      { kind: "soul", intent: "artifact:generator", content: "Create safe identity guidance.", target: ".env", mode: "preview", template_version: "1.0.0" },
-      { kind: "agents", intent: "artifact:generator", content: "Create safe project guidance.", target: 42, mode: "preview", template_version: "1.0.0" },
-      { kind: "skill", intent: "artifact:generator", content: "Write .env settings.", target: "forbidden-env-skill", name: "forbidden-env-skill", mode: "preview", template_version: "1.0.0" },
+      { kind: "soul", summary: "Create safe identity guidance", target: ".env", mode: "preview", template_version: "1.0.0" },
+      { kind: "agents", summary: "Create safe project guidance", target: 42, mode: "preview", template_version: "1.0.0" },
+      { kind: "skill", summary: "Write .env settings", target: "forbidden-env-skill", name: "forbidden-env-skill", mode: "preview", template_version: "1.0.0" },
+      { kind: "skill", summary: "Create a safe fixture", target: "legacy-shape", name: "legacy-shape", mode: "apply", template_version: "1.0.0", approved_change_set: {} },
     ]) {
-      const path = join(fixture, `invalid-${String(invalid.kind)}.json`);
+      const path = join(fixture, `invalid-${String(invalid.kind)}-${String(invalid.target)}.json`.replaceAll("/", "-"));
       writeFileSync(path, JSON.stringify(invalid));
       expect(run([process.execPath, hermesGeneratePath, "--manifest", path, "--workspace", fixture], fixture).exitCode).toBe(1);
     }
-    writeFileSync(join(fixture, "SOUL.md"), "private mode\n", { mode: 0o600 });
-    chmodSync(join(fixture, "SOUL.md"), 0o600);
-    const unsupportedMode = { kind: "soul", intent: "artifact:generator", content: "Create safe identity guidance.", target: "SOUL.md", mode: "preview", template_version: "1.0.0" };
+    writeFileSync(join(fixture, "PRIVATE.md"), "private mode\n", { mode: 0o600 });
+    chmodSync(join(fixture, "PRIVATE.md"), 0o600);
+    const unsupportedMode = { kind: "soul", summary: "Create safe identity guidance", target: "SOUL.md", mode: "preview", template_version: "1.0.0" };
     const unsupportedModePath = join(fixture, "unsupported-mode.json");
     writeFileSync(unsupportedModePath, JSON.stringify(unsupportedMode));
+    chmodSync(join(fixture, "SOUL.md"), 0o600);
     expect(run([process.execPath, hermesGeneratePath, "--manifest", unsupportedModePath, "--workspace", fixture], fixture).stderr).toContain("E_PREIMAGE_MODE");
-    rmSync(join(fixture, "SOUL.md"));
+    chmodSync(join(fixture, "SOUL.md"), 0o644);
     const staleTarget = "stale-lock-skill";
-    const staleSpec = { kind: "skill", intent: "artifact:generator", content: "Create stale lock recovery fixture.", target: staleTarget, name: staleTarget, mode: "preview", template_version: "1.0.0" };
+    const staleSpec = { kind: "skill", summary: "Create stale lock recovery fixture", target: staleTarget, name: staleTarget, mode: "apply", template_version: "1.0.0" };
     const staleSpecPath = join(fixture, "stale-lock.json");
-    writeFileSync(staleSpecPath, JSON.stringify(staleSpec));
-    const stalePreview = JSON.parse(run([process.execPath, hermesGeneratePath, "--manifest", staleSpecPath, "--workspace", fixture], fixture).stdout);
-    staleSpec.mode = "apply";
-    staleSpec.approved_change_set = stalePreview;
     writeFileSync(staleSpecPath, JSON.stringify(staleSpec));
     const lockToken = createHash("sha256").update(staleTarget).digest("hex").slice(0, 16);
     const staleLock = join(realpathSync(fixture), `.hermes-agent-maker-lock-${lockToken}`);
@@ -1105,30 +1058,33 @@ test("pre-deploy rejects malformed package metadata", () => {
   }
 });
 
-test("hermes generator preview approval applies a skill as a complete directory tree", () => {
+test("routing required fields match the manifest schema", () => {
+  const routing = readFileSync(hermesRoutingPath, "utf8");
+  const sentence = routing.match(/A `NormalizedArtifactSpec` needs ([^\n]+?)(?:, plus|\.)/)?.[1] ?? "";
+  const documented = [...sentence.matchAll(/`([^`]+)`/g)].map((match) => match[1]);
+  const required = JSON.parse(readFileSync(hermesManifestSchemaPath, "utf8")).required;
+  expect(new Set(documented)).toEqual(new Set(required));
+});
+
+test("hermes generator writes a skill as a complete directory tree in one apply run", () => {
   const fixture = mkdtempSync(join(tmpdir(), "hypercore-hermes-generator-"));
   const target = "demo-skill";
   const previewManifest = join(fixture, "preview.json");
+  const spec = { kind: "skill", summary: "Create a complete demo skill", target, name: "demo-skill", mode: "preview", template_version: "1.0.0" };
   try {
-    writeFileSync(previewManifest, JSON.stringify({
-      kind: "skill", intent: "artifact:skill-package", content: "Create a complete demo skill.", target, name: "demo-skill", mode: "preview", template_version: "1.0.0",
-    }));
+    writeFileSync(previewManifest, JSON.stringify(spec));
     const preview = run([process.execPath, hermesGeneratePath, "--manifest", previewManifest, "--workspace", fixture], fixture);
     expect(preview.exitCode).toBe(0);
     expect(existsSync(join(fixture, target))).toBe(false);
-    const rendered = JSON.parse(preview.stdout);
     const applyManifest = join(fixture, "apply.json");
-    writeFileSync(applyManifest, JSON.stringify({
-      kind: "skill", intent: "artifact:skill-package", content: "Create a complete demo skill.", target, name: "demo-skill", mode: "apply", template_version: "1.0.0",
-      approved_change_set: rendered,
-    }));
+    writeFileSync(applyManifest, JSON.stringify({ ...spec, mode: "apply" }));
     const applied = run([process.execPath, hermesGeneratePath, "--manifest", applyManifest, "--workspace", fixture], fixture);
     expect(applied.exitCode).toBe(0);
     expect(JSON.parse(applied.stdout)).toMatchObject({ receipt_kind: "apply", mode: "apply", transaction_phase: "committed", recovery_disposition: "none" });
     expect(statSync(join(fixture, target)).isDirectory()).toBe(true);
-    expect(existsSync(join(fixture, target, "SKILL.md"))).toBe(true);
-    expect(existsSync(join(fixture, target, "SKILL.ko.md"))).toBe(true);
-    expect(existsSync(join(fixture, target, ".hermes-agent-maker", "ownership.json"))).toBe(true);
+    for (const file of ["SKILL.md", "SKILL.ko.md", "references/procedure.md", "templates/output.md", ".hermes-agent-maker/ownership.json"]) {
+      expect(existsSync(join(fixture, target, file))).toBe(true);
+    }
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }
