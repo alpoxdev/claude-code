@@ -136,13 +136,56 @@ VERIFIED apply readback 뒤에는 manifest와, 비게 된 `<workspace-root>/.her
 
 </execution_setup>
 
+<worked_example>
+
+바로 복사해 쓸 수 있는 완결된 `skill` kind 실행 예시입니다. 나머지 여섯 kind도 같은 형태를 따르며, kind별로 검증된 canonical spec은 `skills/hermes-agent-maker/assets/examples/spec-<kind>.json`에 있습니다.
+
+```bash
+# 1. workspace root를 정하고 canonical spec을 씁니다 (키 정렬, 끝에 개행 하나, mode 0600).
+W=/absolute/path/to/workspace-root
+mkdir -p "$W/.hermes-agent-maker/manifests"
+cat > "$W/.hermes-agent-maker/manifests/skill-local-notes.json" <<'EOF'
+{"kind":"skill","mode":"apply","name":"local-notes","summary":"Create a local notes skill that captures and organizes workspace notes.","target":"local-notes","template_version":"1.0.0"}
+EOF
+chmod 600 "$W/.hermes-agent-maker/manifests/skill-local-notes.json"
+
+# 2. 절대 경로 manifest와 workspace로 생성기를 실행합니다.
+bun skills/hermes-agent-maker/scripts/generate.mjs \
+  --manifest "$W/.hermes-agent-maker/manifests/skill-local-notes.json" \
+  --workspace "$W"
+
+# 3. stdout으로 나오는 apply 영수증, exit 0 (여기서는 읽기 쉽게 필드 순서를 바꿨습니다. 실제 생성기는 키 정렬 JSON을 출력합니다):
+# {
+#   "receipt_kind": "apply",
+#   "mode": "apply",
+#   "transaction_phase": "committed",
+#   "recovery_disposition": "none",
+#   "artifact_id": "8c1bcddf14f7a7aaf90d41b4d04fccc0a7db55e62dcd1657d3caf7d721ed0353",
+#   "kind": "skill",
+#   "target_identity": "local-notes",
+#   "template_version": "1.0.0",
+#   "written": [
+#     { "path": "local-notes/.hermes-agent-maker/ownership.json", "sha256": "960d...", "mode": 420 },
+#     { "path": "local-notes/references/procedure.md", "sha256": "cca2...", "mode": 420 },
+#     { "path": "local-notes/SKILL.ko.md", "sha256": "e5b4...", "mode": 420 },
+#     { "path": "local-notes/SKILL.md", "sha256": "36c3...", "mode": 420 },
+#     { "path": "local-notes/templates/output.md", "sha256": "8f03...", "mode": 420 }
+#   ]
+# }
+
+# 4. `written[]`을 workspace 트리와 대조해 VERIFIED 재확인을 마친 뒤, manifest와
+#    "$W/.hermes-agent-maker/" 아래 비게 된 제어 디렉터리를 삭제합니다.
+```
+
+</worked_example>
+
 <workflow>
 
 1. `rules/routing.ko.md`, `rules/write-safety.ko.md`, `references/artifact-contracts.ko.md`를 읽습니다. portable 출력이면 `references/portable-agent-plugins-v1.ko.md`도 읽습니다.
 2. 요청된 산출물을 각각 분류합니다. 제외 대상은 거절하고, 복합 요청은 순서를 지키며 산출물마다 경로를 하나씩 둡니다.
 3. `kind`, `name`, `target`, `summary`를 요청과 workspace에서 도출합니다. 맥락으로 중요한 갈림길을 정할 수 없을 때만 쉬운 한국어로 짧게 한 번 묻습니다.
 4. `assets/manifest.schema.json`을 써서 엄격한 `NormalizedArtifactSpec`을 만듭니다. 모르는 필드는 거절하고 자연어를 실행 파일에 넘기지 않습니다.
-5. `<execution_setup>`에 따라 workspace root를 정하고 spec을 쓴 뒤, `scripts/generate.mjs`를 `mode: "apply"`로 실행합니다: `bun scripts/generate.mjs --manifest <workspace-root>/.hermes-agent-maker/manifests/<kind>-<name>.json --workspace <workspace-root>`. 기존 artifact를 덮어쓰거나 낯선 대상을 건드릴 때만 `mode: "preview"`를 먼저 실행하고 그 change-set을 사용자에게 보고합니다.
+5. `<execution_setup>`에 따라 workspace root를 정하고 spec을 쓴 뒤, `scripts/generate.mjs`를 `mode: "apply"`로 실행합니다: `bun scripts/generate.mjs --manifest <workspace-root>/.hermes-agent-maker/manifests/<kind>-<name>.json --workspace <workspace-root>`. 기존 artifact를 덮어쓰거나 낯선 대상을 건드릴 때만 `mode: "preview"`를 먼저 실행하고 그 change-set을 사용자에게 보고합니다. preview는 artifact를 렌더링해 현재 트리와 비교만 할 뿐 소유권, 쓰기 가능 여부, apply 자격을 전혀 확인하지 않으므로 preview 성공이 `apply` 성공을 뜻하지 않습니다.
 6. `portable-plugin`은 생성기가 쓰기 전에 고정된 오프라인 Agent Plugins v1.0.0 계약을 먼저 검증하고 그다음 Hermes subset을 검증합니다. 형식은 인식되지만 지원되지 않는 `sse` transport는 subset에서 계속 거절됩니다. 기록된 패키지는 `bun scripts/validate-portable-v1-output.mjs --root <artifact-root>`로 다시 확인합니다.
 7. 대상이 이미 있으면 사용자가 교체를 요청하지 않는 한 `E_TARGET_EXISTS`로 멈춥니다. 그때만 `overwrite: true`를 설정하며, 디렉터리 교체는 유효한 `.hermes-agent-maker/ownership.json` marker가 추가로 필요하고 소유 밖 root는 `E_UNOWNED_ROOT`로 멈춥니다.
 8. 기록된 트리를 다시 읽어 apply 영수증의 파일, mode, 해시가 모두 맞는지 확인합니다.

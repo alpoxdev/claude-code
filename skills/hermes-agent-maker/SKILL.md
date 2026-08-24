@@ -71,7 +71,7 @@ Boundary examples:
 - “플러그인을 만들어 줘.” Choose the form from the request, say why in one sentence, and generate; ask only when both forms fit equally.
 - “스킬과 AGENTS.md를 같이 만들어 줘.” Split into `skill` and `agents`, then generate both in the stated order.
 - “USER.md를 바로 적용해 줘.” Route only to `user-draft`; active USER mutation is unavailable.
-- “기존 target을 업데이트해 줘.” Preview the change-set, set `overwrite: true`, and write only when the ownership marker validates.
+- “기존 target을 업데이트해 줘.” Preview the change-set, then set `overwrite: true`. For a directory kind, write only when the ownership marker validates. For a fixed single-file kind (`soul`, `agents`, `user-draft`, `memory-draft`), write when the existing target is a regular, non-symlink file — a hand-authored file carries no ownership claim and is replaceable.
 
 </activation_examples>
 
@@ -136,13 +136,56 @@ After a VERIFIED apply readback, delete the manifest and any now-empty control d
 
 </execution_setup>
 
+<worked_example>
+
+One complete `skill`-kind run, copy-pasteable end to end. The other six kinds follow the identical shape; a canonical, generator-accepted spec for each lives at `skills/hermes-agent-maker/assets/examples/spec-<kind>.json`.
+
+```bash
+# 1. Resolve the workspace root and write the canonical spec (sorted keys, trailing newline, mode 0600).
+W=/absolute/path/to/workspace-root
+mkdir -p "$W/.hermes-agent-maker/manifests"
+cat > "$W/.hermes-agent-maker/manifests/skill-local-notes.json" <<'EOF'
+{"kind":"skill","mode":"apply","name":"local-notes","summary":"Create a local notes skill that captures and organizes workspace notes.","target":"local-notes","template_version":"1.0.0"}
+EOF
+chmod 600 "$W/.hermes-agent-maker/manifests/skill-local-notes.json"
+
+# 2. Run the generator with the absolute manifest and workspace paths.
+bun skills/hermes-agent-maker/scripts/generate.mjs \
+  --manifest "$W/.hermes-agent-maker/manifests/skill-local-notes.json" \
+  --workspace "$W"
+
+# 3. Apply receipt on stdout, exit 0 (fields reordered here for readability; the generator emits sorted-key JSON):
+# {
+#   "receipt_kind": "apply",
+#   "mode": "apply",
+#   "transaction_phase": "committed",
+#   "recovery_disposition": "none",
+#   "artifact_id": "8c1bcddf14f7a7aaf90d41b4d04fccc0a7db55e62dcd1657d3caf7d721ed0353",
+#   "kind": "skill",
+#   "target_identity": "local-notes",
+#   "template_version": "1.0.0",
+#   "written": [
+#     { "path": "local-notes/.hermes-agent-maker/ownership.json", "sha256": "960d...", "mode": 420 },
+#     { "path": "local-notes/references/procedure.md", "sha256": "cca2...", "mode": 420 },
+#     { "path": "local-notes/SKILL.ko.md", "sha256": "e5b4...", "mode": 420 },
+#     { "path": "local-notes/SKILL.md", "sha256": "36c3...", "mode": 420 },
+#     { "path": "local-notes/templates/output.md", "sha256": "8f03...", "mode": 420 }
+#   ]
+# }
+
+# 4. After a VERIFIED readback of `written[]` against the workspace tree, delete the manifest
+#    and any now-empty control directory under "$W/.hermes-agent-maker/".
+```
+
+</worked_example>
+
 <workflow>
 
 1. Read `rules/routing.md`, `rules/write-safety.md`, and `references/artifact-contracts.md`. For portable output also read `references/portable-agent-plugins-v1.md`.
 2. Classify each requested deliverable. Reject excluded work; for a composite, preserve request order and keep one route per deliverable.
 3. Resolve `kind`, `name`, `target`, and `summary` from the request and workspace. Ask one short easy-Korean question only when context cannot settle a material fork.
 4. Build a strict `NormalizedArtifactSpec` using `assets/manifest.schema.json`. Reject unknown fields and never pass natural language to executables.
-5. Follow `<execution_setup>` to resolve the workspace root and write the spec, then run `scripts/generate.mjs` with `mode: "apply"`: `bun scripts/generate.mjs --manifest <workspace-root>/.hermes-agent-maker/manifests/<kind>-<name>.json --workspace <workspace-root>`. Use `mode: "preview"` first only when the run would overwrite an existing artifact or touch an unfamiliar target, and report that change-set to the user.
+5. Follow `<execution_setup>` to resolve the workspace root and write the spec, then run `scripts/generate.mjs` with `mode: "apply"`: `bun scripts/generate.mjs --manifest <workspace-root>/.hermes-agent-maker/manifests/<kind>-<name>.json --workspace <workspace-root>`. Use `mode: "preview"` first only when the run would overwrite an existing artifact or touch an unfamiliar target, and report that change-set to the user. A preview only renders the artifact and diffs it against the current tree; it never checks ownership, writability, or apply-eligibility, so a successful preview never implies `apply` will succeed.
 6. For `portable-plugin`, the generator validates rendered output against the pinned offline Agent Plugins v1.0.0 contract and then the Hermes subset before writing. A recognized but unsupported `sse` transport stays rejected by the subset. Re-check a written package with `bun scripts/validate-portable-v1-output.mjs --root <artifact-root>`.
 7. When the target already exists, the run stops with `E_TARGET_EXISTS` unless the user asked for a replacement. Set `overwrite: true` only then; a directory replacement additionally requires a valid `.hermes-agent-maker/ownership.json` marker, and an unowned root stops with `E_UNOWNED_ROOT`.
 8. Read the written tree back and confirm every expected file, mode, and hash from the apply receipt.
@@ -179,7 +222,7 @@ Before completion confirm:
 - [ ] Values were resolved from context, and any question asked was a genuine unresolvable fork.
 - [ ] The normalized JSON validates against `assets/manifest.schema.json`.
 - [ ] The generator ran in `apply` mode and its receipt matches the written tree.
-- [ ] An existing target was overwritten only on explicit user request with a validated ownership marker.
+- [ ] An existing target was overwritten only on explicit user request with `overwrite: true`; a directory target additionally required a validated ownership marker, while a fixed single-file target required only a regular, non-symlink file.
 - [ ] `USER`/`MEMORY` output is draft-only; no Discord, install, enable, gateway, credentials, `.env`, network, or dynamic schema behavior exists.
 - [ ] Portable output passed the pinned offline v1.0.0 validation before Hermes subset validation.
 - [ ] Korean mirror and `rules/routing.ko.md` remain semantically aligned with English.
