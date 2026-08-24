@@ -13,9 +13,9 @@ Hermes Agent is Nous Research's open-source agent runtime. Its CLI supports inte
 ## Reading path
 
 1. Read this page for installation, first-run choices, routine CLI use, safety, and recovery.
-2. Read [Context files and SOUL.md](CONTEXT_FILES.md) for global identity, project instructions, persistent memory, precedence, and prompt-injection boundaries.
+2. Read [Context files and SOUL.md](CONTEXT_FILES.md) for global identity, project instructions, precedence, and prompt-injection boundaries; then [MEMORY.md](MEMORY.md) and [USER.md](USER.md) for bounded persistent model context, safety, and correction.
 3. Read [Skills](SKILLS.md) for use, trust, installation, and lifecycle, then [Skill authoring](SKILL_AUTHORING.md) for structure, examples, validation, and publishing.
-4. Read [Plugins](PLUGINS.md) for selection, installation, auditing, and operations, then [Plugin authoring](PLUGIN_AUTHORING.md) for native implementation, validation, and packaging.
+4. Read [Plugins](PLUGINS.md) for selection, installation, auditing, and operations, then [Plugin authoring](PLUGIN_AUTHORING.md) for native implementation, validation, and packaging; read [Hooks](HOOK.md) before adding lifecycle code, shell commands, or outbound notifications.
 5. Read [Configuration files](CONFIGURATION.md) for file ownership, precedence, secret sources, approval/terminal boundaries, migration, and recovery.
 6. Read [Discord setup](DISCORD.md) before creating, inviting, authorizing, or operating a Discord bot.
 7. Read [Messaging gateway](MESSAGING.md) for shared gateway lifecycle, authorization, sessions, delivery, and adapter-specific differences.
@@ -99,6 +99,7 @@ Backups, imports, logs, configuration, and support-oriented diagnostics have ded
 - **Messaging:** [MESSAGING.md](MESSAGING.md) — gateway service lifecycle, authorization and pairing, session scope, delivery semantics, and adapter differences.
 - **Kanban:** [KANBAN.md](KANBAN.md) — durable multi-profile task boards, worker lifecycle, dependencies, review, recovery, and operations.
 - **Extensions:** [EXTENSIONS.md](EXTENSIONS.md) — MCP, model/memory/context providers, dashboard/desktop, hooks, and operations.
+- **Hooks:** [HOOK.md](HOOK.md) — gateway, plugin, shell, and outbound lifecycle hooks; execution authority, payload, failure, and delivery boundaries.
 
 Before installing or enabling third-party extensions, inspect provenance and source; enable only required capabilities; and pin controlled plugin deployments to immutable revisions where supported. Catalog/index inclusion, skill scanning, Plugin Doctor, and dependency auditing are useful controls but are not a sandbox or a complete security review. Never place credentials in portable `mcp.json` or plugin manifests.
 

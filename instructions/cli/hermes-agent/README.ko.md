@@ -13,9 +13,9 @@ Hermes Agent는 Nous Research의 오픈소스 agent runtime이다. CLI는 대화
 ## 읽기 경로
 
 1. 설치, 첫 실행 선택, 일상 CLI 사용, 안전, 복구는 이 페이지를 읽는다.
-2. Global identity, project instruction, persistent memory, precedence, prompt-injection boundary는 [Context file과 SOUL.md](CONTEXT_FILES.ko.md)를 읽는다.
+2. Global identity, project instruction, precedence, prompt-injection boundary는 [Context file과 SOUL.md](CONTEXT_FILES.ko.md)를 읽고, 제한된 persistent model context, 안전, 정정은 [MEMORY.md](MEMORY.ko.md)와 [USER.md](USER.ko.md)를 읽는다.
 3. Skill 사용, 신뢰, 설치, lifecycle은 [Skills](SKILLS.ko.md)를 읽고, 구조, 예제, 검증, 게시는 [Skill 작성](SKILL_AUTHORING.ko.md)을 읽는다.
-4. Native 또는 portable plugin의 선택, 설치, audit, 운영은 [Plugins](PLUGINS.ko.md)를 읽고, native 구현, 검증, 패키징은 [Plugin 작성](PLUGIN_AUTHORING.ko.md)을 읽는다.
+4. Native 또는 portable plugin의 선택, 설치, audit, 운영은 [Plugins](PLUGINS.ko.md)를 읽고, native 구현, 검증, 패키징은 [Plugin 작성](PLUGIN_AUTHORING.ko.md)을 읽는다. Lifecycle code, shell command, outbound notification을 추가하기 전에는 [Hooks](HOOK.ko.md)를 읽는다.
 5. 파일 소유권, 우선순위, secret source, approval/terminal 경계, migration, recovery는 [설정 파일](CONFIGURATION.ko.md)을 읽는다.
 6. Discord bot을 만들고, 초대하고, 인가하고, 운영하기 전에는 [Discord 설정](DISCORD.ko.md)을 읽는다.
 7. 공통 gateway lifecycle, authorization, session, delivery, adapter 차이는 [메시징 게이트웨이](MESSAGING.ko.md)를 읽는다.
@@ -99,6 +99,7 @@ Backup, import, log, configuration, support-oriented diagnostic에는 전용 CLI
 - **메시징:** [MESSAGING.ko.md](MESSAGING.ko.md) — gateway service lifecycle, authorization/pairing, session scope, delivery semantics, adapter 차이.
 - **Kanban:** [KANBAN.ko.md](KANBAN.ko.md) — durable multi-profile task board, worker lifecycle, dependency, review, recovery, operation.
 - **Extension:** [EXTENSIONS.ko.md](EXTENSIONS.ko.md) — MCP, model/memory/context provider, dashboard/desktop, hook, operation.
+- **Hooks:** [HOOK.ko.md](HOOK.ko.md) — gateway, plugin, shell, outbound lifecycle hook과 실행 권한, payload, failure, delivery 경계.
 
 제3자 extension을 설치하거나 enable하기 전에 provenance와 source를 검사하고, 필요한 capability만 enable하며, 지원되는 경우 통제된 plugin deployment는 immutable revision에 pin한다. Catalog/index 등재, skill scanning, Plugin Doctor, dependency auditing은 유용한 통제 수단이지만 sandbox나 완전한 security review는 아니다. Portable `mcp.json`이나 plugin manifest에 credential을 절대 넣지 않는다.
 
