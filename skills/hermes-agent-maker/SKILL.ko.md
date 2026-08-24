@@ -1,6 +1,6 @@
 ---
 name: hermes-agent-maker
-description: "사용자가 Hermes Agent 산출물(skill 패키지, native 또는 portable plugin, 생성기, SOUL.md, AGENTS.md, USER draft, MEMORY draft)을 만들거나 고쳐 달라고 할 때 사용합니다. 요청을 분류하고 엄격한 artifact 명세로 정규화한 뒤, 소유권을 확인하는 transaction 방식으로 로컬에 바로 씁니다. Hermes 설치, login, 활성화, gateway, Discord, 비밀값 작업에는 쓰지 않습니다."
+description: "사용자가 Hermes Agent 산출물(skill 패키지, native 또는 portable plugin, 생성기, SOUL.md, AGENTS.md, USER draft, MEMORY draft)을 만들거나 고쳐 달라고 할 때 사용합니다. 고치는 것(revision)은 완전한 spec으로부터의 전체 재생성이지, 기존 트리에 병합(merge)하거나 patch하는 것이 아닙니다. 손으로 커스타마이즈한 생성된 디렉터리는 소유권 없는 대상으로 거부됩니다. 요청을 분류하고 엄격한 artifact 명세로 정규화한 뒤, 소유권을 확인하는 transaction 방식으로 로컬에 바로 씁니다. Hermes 설치, login, 활성화, gateway, Discord, 비밀값 작업에는 쓰지 않습니다."
 compatibility: 로컬 생성기와 portable 검증기를 실행하려면 저장소 범위의 read/edit 실행 권한과 Bun 또는 Node가 필요합니다. 네트워크와 credential 접근은 쓰지 않습니다.
 ---
 
@@ -71,7 +71,7 @@ Hermes 설치·login·활성화·제거·trust·설정, gateway·Discord·bot·a
 - “플러그인을 만들어 줘.” 요청에서 형식을 고르고 이유를 한 문장으로 말한 뒤 생성합니다. 두 형식이 똑같이 맞을 때만 묻습니다.
 - “스킬과 AGENTS.md를 같이 만들어 줘.” `skill`과 `agents`로 나누고 말한 순서대로 둘 다 생성합니다.
 - “USER.md를 바로 적용해 줘.” `user-draft`로만 라우팅합니다. 활성 USER 변경은 제공하지 않습니다.
-- “기존 target을 업데이트해 줘.” change-set을 preview하고 `overwrite: true`를 설정하며, ownership marker가 검증될 때만 씁니다.
+- “기존 target을 업데이트해 줘.” change-set을 preview한 뒤 `overwrite: true`를 설정합니다. 디렉터리 kind는 ownership marker가 검증될 때만 씁니다. 고정 단일 파일 kind(`soul`, `agents`, `user-draft`, `memory-draft`)는 기존 대상이 일반 파일이고 symlink가 아니면 씁니다. 손으로 작성한 파일은 소유권 주장이 없어 교체할 수 있습니다.
 
 </activation_examples>
 
@@ -222,7 +222,7 @@ bun skills/hermes-agent-maker/scripts/generate.mjs \
 - [ ] 값은 맥락에서 도출했고, 질문했다면 정말 해결 불가능한 갈림길이었습니다.
 - [ ] 정규화 JSON이 `assets/manifest.schema.json`을 통과했습니다.
 - [ ] 생성기를 `apply` 모드로 실행했고 영수증이 기록된 트리와 일치합니다.
-- [ ] 기존 대상은 사용자의 명시적 요청과 검증된 ownership marker가 있을 때만 덮어썼습니다.
+- [ ] 기존 대상은 사용자의 명시적 요청과 `overwrite: true`가 있을 때만 덮어썼습니다. 디렉터리 대상은 검증된 ownership marker가 더 필요했고, 고정 단일 파일 대상은 일반 파일이고 symlink가 아니기만 하면 되었습니다.
 - [ ] `USER`/`MEMORY` 출력은 draft뿐이며, Discord·설치·활성화·gateway·credential·`.env`·네트워크·동적 schema 동작이 없습니다.
 - [ ] portable 출력은 Hermes subset 검증 전에 고정된 오프라인 v1.0.0 검증을 통과했습니다.
 - [ ] 한국어 문서와 `rules/routing.ko.md`가 영어 정본과 의미상 정렬되어 있습니다.

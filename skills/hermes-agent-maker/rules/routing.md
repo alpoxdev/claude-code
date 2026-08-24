@@ -26,7 +26,7 @@ Discord may be mentioned as context, but it is never an output, configuration, c
 1. Extract each requested artifact in the order the user stated it.
 2. Classify each artifact with `classifyRequest`.
 3. Reject excluded portions without converting them into another route.
-4. Keep valid routes as one ordered composite request; each route gets its own normalized spec and its own generator run, executed in the stated order.
+4. Keep valid routes as one ordered composite request; each route gets its own normalized spec and its own generator run, executed in the stated order. This is an ORDERED PARTIAL-COMMIT sequence, not a transaction: there is no cross-route rollback. If a route fails mid-sequence, every earlier route's write stays committed and every later route does not run.
 5. Resolve missing values from context first. Ask only about a fork that context genuinely cannot settle, then continue through the remaining routes without re-asking.
 
 Example: “스킬과 portable plugin을 만들고 Discord에 연결해 줘” becomes `skill`, `portable-plugin`, and an excluded Discord portion. Generate both artifacts and state plainly that the Discord part is out of scope.

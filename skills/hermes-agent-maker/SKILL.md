@@ -1,6 +1,6 @@
 ---
 name: hermes-agent-maker
-description: "Use this skill when the user asks to create or revise a Hermes Agent artifact: a skill package, native or portable plugin, generator, SOUL.md, AGENTS.md, USER draft, or MEMORY draft. It classifies the request, normalizes it into a strict artifact specification, and writes the artifact directly with ownership-checked, transactional local writes. Do not use for Hermes installation, login, enablement, gateway, Discord, or credential work."
+description: "Use this skill when the user asks to create or revise a Hermes Agent artifact: a skill package, native or portable plugin, generator, SOUL.md, AGENTS.md, USER draft, or MEMORY draft. A revision is a full regeneration from a complete spec, never a merge or patch onto the existing tree; a hand-customized generated directory is rejected as unowned. It classifies the request, normalizes it into a strict artifact specification, and writes the artifact directly with ownership-checked, transactional local writes. Do not use for Hermes installation, login, enablement, gateway, Discord, or credential work."
 compatibility: Requires repository-scoped read/edit execution plus Bun or Node to run the local generator and portable validator; no network or credential access.
 ---
 
@@ -212,6 +212,26 @@ bun skills/hermes-agent-maker/scripts/generate.mjs \
 - No placeholder, TODO, no-op, compatibility fallback, or fabricated runtime-verification claim.
 
 </forbidden>
+
+<package_map>
+
+Every package support file is connected here without duplicating its content:
+
+- `scripts/generate.mjs` — Purpose: deterministically render and transactionally write normalized artifacts. Load/run when an artifact must be generated or replaced.
+- `scripts/validate-portable-v1-output.mjs` — Purpose: validate a written portable-plugin against the pinned v1 contract. Load/run after generating portable-plugin output.
+- `assets/manifest.schema.json` — Purpose: define the accepted normalized manifest shape. Load when constructing or validating a generator manifest.
+- `assets/templates/artifacts.json` — Purpose: provide generator-owned artifact templates. Load automatically by the generator; NEVER hand-edit.
+- `assets/schemas/agent-plugins-v1.0.0/` — Purpose: provide the pinned offline portable-plugin oracle. Load during portable-plugin validation; never fetch.
+- `assets/examples/` — Purpose: provide seven canonical per-kind example specs. Load when resolving or checking a kind-specific manifest shape.
+- `assets/evals/hermes-agent-maker-cases.jsonl` — Purpose: provide trigger regression fixtures. Load when running skill discovery or routing evaluations.
+- `rules/routing.md` — Purpose: define request classification and scope boundaries. Read before classifying any request.
+- `rules/write-safety.md` — Purpose: define safe ownership and transactional writes. Read before any generator apply or overwrite.
+- `references/artifact-contracts.md` — Purpose: define output contracts for all supported artifact kinds. Read for every route.
+- `references/portable-agent-plugins-v1.md` — Purpose: explain the portable v1 contract. Read only for a portable-plugin route.
+- `references/error-codes.md` — Purpose: explain generator failure codes and recovery guidance. Read when a generator run returns a non-zero exit.
+- `references/transaction-invariants.md` — Purpose: explain transaction and recovery invariants. Read only when a run stops with `E_MARKER`, `E_JOURNAL`, `E_FOREIGN_TRANSACTION`, `E_RECOVERY_AMBIGUOUS`, or a blocked recovery.
+
+</package_map>
 
 <validation>
 
