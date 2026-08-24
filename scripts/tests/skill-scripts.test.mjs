@@ -274,7 +274,8 @@ test("Hermes renders deterministic previews for all seven artifact kinds and kee
       "source-local-official": [/local|로컬/u, /Agent Plugins v1\.0\.0/u, /provenance|출처/u, /schema fetch|schema.*가져/u, /evidence.*authority|근거.*권한/isu],
       "safety-memory-draft": [/draft-only|draft만/u, /USER\.md\.draft\.md/u, /MEMORY\.md\.draft\.md/u, /apply guidance|적용 안내/u, /active memory|활성.*memory/isu, /credential/u],
       "adversarial-injected-content": [/reject|거절/u, /safety boundary|안전.*범위|금지 경계/isu, /Discord/u, /token/u, /gateway/u],
-      "regression-no-approval-gate": [/apply.*mode|apply 모드/isu, /English.*Korean|영어.*한국어/isu, /approval interview|승인 인터뷰/isu, /permission-begging|허락을 구하는/isu],
+      "regression-no-approval-gate": [/invent an approval (?:interview|gate) by default|승인 관문을 기본으로 발명하지/u, /mode: "apply"|apply 모드/u, /approval interview|승인 인터뷰/u, /permission-begging|허락을 구하는/u],
+      "regression-honor-explicit-preview": [/EXPLICIT user instruction|사용자가 명시한/u, /honored by running preview and stopping|preview를 실행하고 멈춰/u, /preview only|preview만/u, /AUTHORITATIVE/u],
     };
     for (const entry of evals) {
       expect(typeof entry.prompt).toBe("string");

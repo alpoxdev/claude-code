@@ -144,7 +144,7 @@ Read `references/artifact-contracts.md` for every route and `references/portable
 
 - No Discord, gateway, installation, enablement, credential, secret, network, or external-transmission output.
 - No direct USER/MEMORY application, unowned-root overwrite, dynamic schema fetch, or write outside the resolved workspace.
-- No approval interview, permission-begging prompt, or confirmation gate before a safe write.
+- Do not invent an approval gate by default. No invented approval interview or permission-begging prompt before a safe write. An EXPLICIT user instruction to preview only, to not write, or to confirm before applying is AUTHORITATIVE and MUST be honored by running preview and stopping.
 - No placeholder, TODO, no-op, compatibility fallback, or fabricated runtime-verification claim.
 
 </forbidden>

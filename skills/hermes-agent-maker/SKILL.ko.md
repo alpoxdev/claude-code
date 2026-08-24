@@ -144,7 +144,7 @@ Hermes 설치·login·활성화·제거·trust·설정, gateway·Discord·bot·a
 
 - Discord, gateway, 설치, 활성화, credential, 비밀값, 네트워크, 외부 전송 출력은 만들지 않습니다.
 - USER/MEMORY 직접 적용, 소유 밖 root 덮어쓰기, 동적 schema 가져오기, 확인된 workspace 밖 쓰기는 하지 않습니다.
-- 안전한 쓰기 앞에 승인 인터뷰, 허락을 구하는 질문, 확인 관문을 두지 않습니다.
+- 승인 관문을 기본으로 발명하지 않습니다. 안전한 쓰기 앞에 발명된 승인 인터뷰나 허락을 구하는 질문을 두지 않습니다. preview만 하라, 쓰지 마라, apply 전에 확인하라는 사용자가 명시한 지시는 AUTHORITATIVE이며 preview를 실행하고 멈춰서 반드시 따릅니다.
 - placeholder, TODO, 아무 동작 없는 코드, 호환용 fallback, 실행하지 않은 검증 주장은 넣지 않습니다.
 
 </forbidden>
