@@ -42,7 +42,7 @@ Discord는 맥락으로 언급될 수 있지만, 출력·설정·코드·templat
 | plugin 형식 | Python tool, hook, command, Hermes 등록이 필요하면 `native-plugin`을 고릅니다. 여러 런타임 재사용이나 지침 전용 패키징이 중심이면 `portable-plugin`을 고릅니다. 선택과 그 결과를 한 문장으로 말하고, 두 해석이 똑같이 그럴듯할 때만 묻습니다. |
 | target | `soul`, `agents`, `user-draft`, `memory-draft`는 고정입니다. 디렉터리 kind는 패키지 이름에서 workspace 상대 경로를 도출하며, 사용자가 위치를 말하지 않으면 workspace 루트의 `<name>`을 기본값으로 씁니다. |
 | name | 사용자의 표현에서 도출한 소문자 kebab-case. |
-| summary | artifact의 목적을 요청에서 뽑아 한 문장으로 씁니다. 설치·credential·gateway·Discord·네트워크 용어가 들어가면 schema와 생성기가 모두 거절합니다. |
+| summary | 1-500자이며 `kind`가 `portable-plugin`이면 최대 280자입니다(포터블 manifest의 `description`이 280자로 제한됩니다). 첫 문자는 ASCII 영문자 또는 숫자여야 합니다. 다음 문자는 그대로 포함할 수 없습니다: `" ' \\ : { } [ ] < > # & * ! | % @ \``. 대소문자를 구분하지 않고 다음 blocklist 대안과 일치해서는 안 됩니다: `.env`, `install(?:ation)?`, `login`, `profile`, `trust`, `enable(?:ment)?`, `remove`, `gateway`, `discord`, `bot`, `adapter`, `credential`, `credentials`, `token`, `tokens`, `password`, `secret`, `private[ _-]?key`, `api[ _-]?key`, `network`, `external[ _-]?transmission`, `dynamic[ _-]?schema`, `schema[ _-]?(?:fetch|retrieval)`. |
 | overwrite | 이 생성기가 소유한 기존 artifact를 교체해 달라고 했을 때만 `overwrite: true`를 씁니다. 낯선 경로의 `E_TARGET_EXISTS`를 우회하려고 쓰지 않습니다. |
 
 사용자가 기존 `USER.md`나 `MEMORY.md`를 적용해 달라고 하면 이렇게 설명합니다: “USER와 MEMORY는 안전을 위해 draft만 만들 수 있습니다. 제안 문서로 만들겠습니다.” 그런 다음 해당 draft 경로로 라우팅해 생성합니다.
