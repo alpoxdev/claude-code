@@ -115,13 +115,34 @@ Read `references/artifact-contracts.md` for every route and `references/portable
 
 </support_file_read_order>
 
+<execution_setup>
+
+Resolve `<spec.json>` and `<workspace-root>` before every `scripts/generate.mjs` run. Do not guess either value. Never silently use the skill package directory as the workspace.
+
+Workspace root precedence, first match wins:
+
+1. A directory the user explicitly calls the workspace or repository root.
+2. The host-declared workspace root.
+3. `git -C <cwd> rev-parse --show-toplevel`.
+4. Otherwise STOP and ask ONE question that names the candidate directory.
+
+Resolve the chosen directory to its physical `realpath` and pass that absolute path as `--workspace`.
+
+Serialize the normalized spec as sorted-key UTF-8 JSON with one trailing newline. Write it mode `0600` to `<workspace-root>/.hermes-agent-maker/manifests/<kind>-<name>.json`. For fixed single-file kinds (`soul`, `agents`, `user-draft`, `memory-draft`) use the target stem as `<name>` (`SOUL`, `AGENTS`, `USER.md.draft`, `MEMORY.md.draft`). `.hermes-agent-maker/` is RESERVED and can never be an artifact target.
+
+Do not park the spec inside the artifact target. `validateWritableTarget` in `scripts/generate.mjs` treats any existing path at `target` as a live artifact: without `overwrite: true` it throws `E_TARGET_EXISTS` (`if (!existsSync(target)) return;` then `if (spec.overwrite !== true) throw new Error("E_TARGET_EXISTS")`). A directory that exists but contains a file outside the owned set — including a parked spec — throws `E_UNOWNED_ROOT` (`if (actual.size !== allowed.size || [...actual.keys()].some((path) => !allowed.has(path))) throw new Error("E_UNOWNED_ROOT")`). Writing the spec into the artifact therefore makes an absent target look present or adds an unmanaged file.
+
+After a VERIFIED apply readback, delete the manifest and any now-empty control directory under `<workspace-root>/.hermes-agent-maker/`. When an apply fails without producing a receipt, RETAIN the manifest and report its absolute path. Recovery is bound to `artifact_id` and only runs during a later apply; deleting the spec after a failure destroys the only path back. Journal recovery requires the identical spec.
+
+</execution_setup>
+
 <workflow>
 
 1. Read `rules/routing.md`, `rules/write-safety.md`, and `references/artifact-contracts.md`. For portable output also read `references/portable-agent-plugins-v1.md`.
 2. Classify each requested deliverable. Reject excluded work; for a composite, preserve request order and keep one route per deliverable.
 3. Resolve `kind`, `name`, `target`, and `summary` from the request and workspace. Ask one short easy-Korean question only when context cannot settle a material fork.
 4. Build a strict `NormalizedArtifactSpec` using `assets/manifest.schema.json`. Reject unknown fields and never pass natural language to executables.
-5. Run `scripts/generate.mjs` with `mode: "apply"` and the normalized JSON: `bun scripts/generate.mjs --manifest <spec.json> --workspace <workspace-root>`. Use `mode: "preview"` first only when the run would overwrite an existing artifact or touch an unfamiliar target, and report that change-set to the user.
+5. Follow `<execution_setup>` to resolve the workspace root and write the spec, then run `scripts/generate.mjs` with `mode: "apply"`: `bun scripts/generate.mjs --manifest <workspace-root>/.hermes-agent-maker/manifests/<kind>-<name>.json --workspace <workspace-root>`. Use `mode: "preview"` first only when the run would overwrite an existing artifact or touch an unfamiliar target, and report that change-set to the user.
 6. For `portable-plugin`, the generator validates rendered output against the pinned offline Agent Plugins v1.0.0 contract and then the Hermes subset before writing. A recognized but unsupported `sse` transport stays rejected by the subset. Re-check a written package with `bun scripts/validate-portable-v1-output.mjs --root <artifact-root>`.
 7. When the target already exists, the run stops with `E_TARGET_EXISTS` unless the user asked for a replacement. Set `overwrite: true` only then; a directory replacement additionally requires a valid `.hermes-agent-maker/ownership.json` marker, and an unowned root stops with `E_UNOWNED_ROOT`.
 8. Read the written tree back and confirm every expected file, mode, and hash from the apply receipt.
@@ -162,5 +183,6 @@ Before completion confirm:
 - [ ] `USER`/`MEMORY` output is draft-only; no Discord, install, enable, gateway, credentials, `.env`, network, or dynamic schema behavior exists.
 - [ ] Portable output passed the pinned offline v1.0.0 validation before Hermes subset validation.
 - [ ] Korean mirror and `rules/routing.ko.md` remain semantically aligned with English.
+- [ ] Workspace root followed the four-step precedence and was passed as an absolute `realpath`; the spec lived under `<workspace-root>/.hermes-agent-maker/manifests/` and was deleted only after a verified apply readback.
 
 </validation>

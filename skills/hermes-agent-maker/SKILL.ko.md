@@ -115,13 +115,34 @@ Hermes 설치·login·활성화·제거·trust·설정, gateway·Discord·bot·a
 
 </support_file_read_order>
 
+<execution_setup>
+
+`scripts/generate.mjs`를 실행하기 전에 `<spec.json>`과 `<workspace-root>`를 확정합니다. 둘 다 추측하지 않습니다. skill 패키지 디렉터리를 workspace로 조용히 쓰지 않습니다.
+
+Workspace root 우선순위는 아래 순서이며, 먼저 맞는 항목에서 멈춥니다.
+
+1. 사용자가 workspace 또는 repository root라고 명시한 디렉터리.
+2. 호스트가 선언한 workspace root.
+3. `git -C <cwd> rev-parse --show-toplevel`.
+4. 그래도 없으면 STOP하고 후보 디렉터리 이름을 적은 질문을 한 번만 합니다.
+
+고른 디렉터리는 물리 `realpath`로 풀어 그 절대 경로를 `--workspace`로 넘깁니다.
+
+정규화 spec은 키를 정렬한 UTF-8 JSON으로 직렬화하고 끝에 개행 하나를 붙입니다. mode `0600`으로 `<workspace-root>/.hermes-agent-maker/manifests/<kind>-<name>.json`에 씁니다. 고정 단일 파일 kind(`soul`, `agents`, `user-draft`, `memory-draft`)는 target stem을 `<name>`으로 씁니다(`SOUL`, `AGENTS`, `USER.md.draft`, `MEMORY.md.draft`). `.hermes-agent-maker/`는 RESERVED이며 artifact target이 될 수 없습니다.
+
+Spec을 artifact target 안에 두지 않습니다. `scripts/generate.mjs`의 `validateWritableTarget`은 `target`에 이미 경로가 있으면 살아있는 artifact로 봅니다. `overwrite: true`가 아니면 `E_TARGET_EXISTS`를 던집니다(`if (!existsSync(target)) return;` 다음 `if (spec.overwrite !== true) throw new Error("E_TARGET_EXISTS")`). 디렉터리가 있는데 owned set 밖 파일이 있으면 — parked spec 포함 — `E_UNOWNED_ROOT`를 던집니다(`if (actual.size !== allowed.size || [...actual.keys()].some((path) => !allowed.has(path))) throw new Error("E_UNOWNED_ROOT")`). 따라서 spec을 artifact 안에 쓰면 없는 target이 있는 것처럼 보이거나 관리되지 않는 파일이 추가됩니다.
+
+VERIFIED apply readback 뒤에는 manifest와, 비게 된 `<workspace-root>/.hermes-agent-maker/` 제어 디렉터리를 삭제합니다. 영수증 없이 apply가 실패하면 manifest를 RETAIN하고 절대 경로를 보고합니다. Recovery는 `artifact_id`에 묶여 있고 이후 apply에서만 실행됩니다. 실패 후 spec을 지우면 돌아갈 유일한 경로가 사라집니다. Journal recovery는 identical spec이 필요합니다.
+
+</execution_setup>
+
 <workflow>
 
 1. `rules/routing.ko.md`, `rules/write-safety.ko.md`, `references/artifact-contracts.ko.md`를 읽습니다. portable 출력이면 `references/portable-agent-plugins-v1.ko.md`도 읽습니다.
 2. 요청된 산출물을 각각 분류합니다. 제외 대상은 거절하고, 복합 요청은 순서를 지키며 산출물마다 경로를 하나씩 둡니다.
 3. `kind`, `name`, `target`, `summary`를 요청과 workspace에서 도출합니다. 맥락으로 중요한 갈림길을 정할 수 없을 때만 쉬운 한국어로 짧게 한 번 묻습니다.
 4. `assets/manifest.schema.json`을 써서 엄격한 `NormalizedArtifactSpec`을 만듭니다. 모르는 필드는 거절하고 자연어를 실행 파일에 넘기지 않습니다.
-5. `scripts/generate.mjs`를 `mode: "apply"`와 정규화 JSON으로 실행합니다: `bun scripts/generate.mjs --manifest <spec.json> --workspace <workspace-root>`. 기존 artifact를 덮어쓰거나 낯선 대상을 건드릴 때만 `mode: "preview"`를 먼저 실행하고 그 change-set을 사용자에게 보고합니다.
+5. `<execution_setup>`에 따라 workspace root를 정하고 spec을 쓴 뒤, `scripts/generate.mjs`를 `mode: "apply"`로 실행합니다: `bun scripts/generate.mjs --manifest <workspace-root>/.hermes-agent-maker/manifests/<kind>-<name>.json --workspace <workspace-root>`. 기존 artifact를 덮어쓰거나 낯선 대상을 건드릴 때만 `mode: "preview"`를 먼저 실행하고 그 change-set을 사용자에게 보고합니다.
 6. `portable-plugin`은 생성기가 쓰기 전에 고정된 오프라인 Agent Plugins v1.0.0 계약을 먼저 검증하고 그다음 Hermes subset을 검증합니다. 형식은 인식되지만 지원되지 않는 `sse` transport는 subset에서 계속 거절됩니다. 기록된 패키지는 `bun scripts/validate-portable-v1-output.mjs --root <artifact-root>`로 다시 확인합니다.
 7. 대상이 이미 있으면 사용자가 교체를 요청하지 않는 한 `E_TARGET_EXISTS`로 멈춥니다. 그때만 `overwrite: true`를 설정하며, 디렉터리 교체는 유효한 `.hermes-agent-maker/ownership.json` marker가 추가로 필요하고 소유 밖 root는 `E_UNOWNED_ROOT`로 멈춥니다.
 8. 기록된 트리를 다시 읽어 apply 영수증의 파일, mode, 해시가 모두 맞는지 확인합니다.
@@ -162,5 +183,6 @@ Hermes 설치·login·활성화·제거·trust·설정, gateway·Discord·bot·a
 - [ ] `USER`/`MEMORY` 출력은 draft뿐이며, Discord·설치·활성화·gateway·credential·`.env`·네트워크·동적 schema 동작이 없습니다.
 - [ ] portable 출력은 Hermes subset 검증 전에 고정된 오프라인 v1.0.0 검증을 통과했습니다.
 - [ ] 한국어 문서와 `rules/routing.ko.md`가 영어 정본과 의미상 정렬되어 있습니다.
+- [ ] Workspace root는 네 단계 우선순위를 따랐고 절대 `realpath`로 넘겼습니다. spec은 `<workspace-root>/.hermes-agent-maker/manifests/`에 있었고, 검증된 apply readback 뒤에만 삭제했습니다.
 
 </validation>
