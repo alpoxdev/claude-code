@@ -213,6 +213,26 @@ bun skills/hermes-agent-maker/scripts/generate.mjs \
 
 </forbidden>
 
+<package_map>
+
+모든 support file은 내용을 복제하지 않고 여기서 연결합니다:
+
+- `scripts/generate.mjs` — 목적: 정규화된 artifact를 결정적으로 렌더링하고 transaction 방식으로 씁니다. artifact를 생성하거나 교체할 때 불러와 실행합니다.
+- `scripts/validate-portable-v1-output.mjs` — 목적: 기록된 portable-plugin을 고정 v1 계약으로 검증합니다. portable-plugin 생성 후 불러와 실행합니다.
+- `assets/manifest.schema.json` — 목적: 허용되는 정규화 manifest 형태를 정의합니다. generator manifest를 만들거나 검증할 때 읽습니다.
+- `assets/templates/artifacts.json` — 목적: generator가 소유한 artifact template을 제공합니다. generator가 자동으로 읽으며 절대 손으로 수정하지 않습니다.
+- `assets/schemas/agent-plugins-v1.0.0/` — 목적: 고정된 offline portable-plugin oracle을 제공합니다. portable-plugin 검증 때 읽고 절대 가져오지 않습니다.
+- `assets/evals/hermes-agent-maker-cases.jsonl` — 목적: trigger regression fixture를 제공합니다. skill discovery 또는 routing 평가 때 읽습니다.
+- `assets/examples/` — 목적: kind별 일곱 canonical example spec을 제공합니다. kind별 manifest 형태를 정하거나 확인할 때 읽습니다.
+- `rules/routing.md` — 목적: 요청 분류와 범위 경계를 정의합니다. 모든 요청을 분류하기 전에 읽습니다.
+- `rules/write-safety.md` — 목적: 안전한 ownership과 transaction write를 정의합니다. generator apply 또는 overwrite 전에 읽습니다.
+- `references/artifact-contracts.md` — 목적: 지원하는 모든 artifact kind의 출력 계약을 정의합니다. 모든 route에서 읽습니다.
+- `references/portable-agent-plugins-v1.md` — 목적: portable v1 계약을 설명합니다. portable-plugin route에서만 읽습니다.
+- `references/error-codes.md` — 목적: generator failure code와 recovery 안내를 설명합니다. generator run이 non-zero exit를 반환할 때 읽습니다.
+- `references/transaction-invariants.md` — 목적: transaction과 recovery invariant를 설명합니다. `E_MARKER`, `E_JOURNAL`, `E_FOREIGN_TRANSACTION`, `E_RECOVERY_AMBIGUOUS` 또는 blocked recovery로 run이 멈출 때만 읽습니다.
+
+</package_map>
+
 <validation>
 
 완료 전에 확인합니다:

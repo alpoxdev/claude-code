@@ -215,7 +215,7 @@ bun skills/hermes-agent-maker/scripts/generate.mjs \
 
 <package_map>
 
-Every package support file is connected here without duplicating its content:
+Every package support file is directly discoverable here without duplicating its content:
 
 - `scripts/generate.mjs` — Purpose: deterministically render and transactionally write normalized artifacts. Load/run when an artifact must be generated or replaced.
 - `scripts/validate-portable-v1-output.mjs` — Purpose: validate a written portable-plugin against the pinned v1 contract. Load/run after generating portable-plugin output.
