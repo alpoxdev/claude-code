@@ -15,6 +15,7 @@ Use this alongside a prompt pack to make source-sensitive behavior auditable.
 | source_id | Stable source identifier |
 | trust_level | project, official, user-provided, retrieved, tool-output, unknown |
 | claim_ids | Claims supported by this source |
+| version_or_freshness | Source version, snapshot, publication date, or freshness caveat |
 
 ## context packet
 
@@ -25,9 +26,9 @@ Use this alongside a prompt pack to make source-sensitive behavior auditable.
 
 ## examples
 
-| source_id | path_or_url | trust_level | supports | caveats |
-|---|---|---|---|---|
-| src-001 |  |  |  |  |
+| source_id | path_or_url | accessed_at | version_or_freshness | trust_level | supports | caveats |
+|---|---|---|---|---|---|---|
+| src-001 |  |  |  |  |  |  |
 
 ## constraints
 
@@ -43,6 +44,7 @@ sources:
   - source_id: ""
     path_or_url: ""
     accessed_at: ""
+    version_or_freshness: ""
     trust_level: ""
     claims_supported: []
     caveats: []

@@ -48,7 +48,7 @@
 ## output schema
 
 ```yaml
-format: markdown
+format: markdown # markdown | json | yaml
 language: Korean unless requested otherwise
 fields:
   - result
@@ -60,6 +60,8 @@ forbidden:
   - uncited source-sensitive claims
   - ungated destructive or production actions
 ```
+
+For `json` or `yaml`, replace `fields` with exact keys and types, define malformed-input rejection, and require a parse check in the schema eval.
 
 ## eval cases
 

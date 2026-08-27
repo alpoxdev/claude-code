@@ -42,7 +42,7 @@ constraints:
   safety: []
   reasoning_visibility: "Do not request hidden chain-of-thought; ask for public rationale and verification evidence."
 output_schema:
-  format: ""
+  format: "markdown | json | yaml"
   fields: []
   forbidden: []
 eval_cases:
@@ -57,3 +57,5 @@ version_note:
 ## Required Sections
 
 Every prompt pack should include identity, variables, context packet, examples, constraints, output schema, eval cases, and version note even when some values are intentionally empty with a reason.
+
+When `format` is `json` or `yaml`, define exact key names and types, reject malformed required inputs, and include a schema eval that parses the output. Do not accept prose that merely mentions the required fields.

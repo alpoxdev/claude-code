@@ -10,17 +10,28 @@ An eval must be able to fail under a plausible bad prompt. Do not count checks t
 
 ## Case Shape
 
-Each case should have a non-empty id, category, prompt, `expected.must`, and `expected.mustNot`. The expected arrays should describe observable behavior.
+Each medium-or-higher case should define:
+
+- non-empty `id`, `category`, `language`, `invocation`, `risk`, and `prompt`
+- observable `expected.must` and `expected.mustNot`
+- runner and judge identity
+- required trajectory evidence in `trace`
+- a binary acceptance rule in `gate`
+
+Cover the same intent across English, Korean, and mixed-language prompts. Include explicit, implicit, and contextual invocation so trigger tests do not pass from the skill name alone.
 
 ## Iteration Loop
 
-1. Capture baseline behavior.
-2. Run the same cases after each prompt change.
-3. Diagnose failure as instruction gap, context gap, schema mismatch, source-boundary issue, safety issue, or model/runtime mismatch.
-4. Patch the smallest prompt surface.
-5. Add a regression case for every new failure pattern.
-6. Record the version note and remaining risk.
+Use no loop when direct deterministic checks prove the requested artifact. For optimization, run at most three candidate iterations:
+
+1. Capture baseline behavior and score.
+2. Declare the target metric or rubric and improvement direction.
+3. Freeze cases, runner, judge, and non-regression guards.
+4. Diagnose failure as instruction gap, context gap, schema mismatch, source-boundary issue, safety issue, or model/runtime mismatch.
+5. Patch the smallest prompt surface and rerun the same cases.
+6. Keep the candidate only when the target improves and every guard passes; otherwise discard it.
+7. Add a regression case for every new failure pattern and record remaining risk.
 
 ## Stop
 
-Stop optimizing when the target cases pass, the next change would broaden scope, or remaining failures need missing context, a different model/runtime, or user authority.
+Stop optimizing when the target is met, three candidates have been evaluated, a guard failure would require broader scope, or remaining failures need missing context, capability, model/runtime, or user authority. Never change the baseline, cases, runner, or judge to claim improvement.

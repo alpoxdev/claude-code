@@ -48,7 +48,7 @@
 ## output schema
 
 ```yaml
-format: markdown
+format: markdown # markdown | json | yaml
 language: 사용자가 다르게 요청하지 않는 한 Korean
 fields:
   - result
@@ -60,6 +60,8 @@ forbidden:
   - source-sensitive claim without citation
   - ungated destructive or production actions
 ```
+
+`json` 또는 `yaml`에서는 `fields`를 정확한 key와 type으로 바꾸고 malformed-input rejection을 정의하며 schema eval에 parse check를 요구합니다.
 
 ## eval cases
 

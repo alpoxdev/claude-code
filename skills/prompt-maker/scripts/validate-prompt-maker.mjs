@@ -67,6 +67,21 @@ const EVAL_CATEGORY_FLOORS = {
   regression: 1,
   adversarial: 1,
 };
+/** @type {Record<string, number>} */
+const RICH_EVAL_CATEGORY_FLOORS = {
+  positive: 3,
+  negative: 2,
+  boundary: 2,
+  source: 2,
+  safety: 2,
+  schema: 2,
+  regression: 2,
+  adversarial: 2,
+};
+/** @type {Record<string, number>} */
+const EVAL_LANGUAGE_FLOORS = { en: 1, ko: 1, mixed: 1 };
+/** @type {Record<string, number>} */
+const EVAL_INVOCATION_FLOORS = { explicit: 1, implicit: 1, contextual: 1 };
 const ALLOWED_EVAL_CATEGORIES = new Set(Object.keys(EVAL_CATEGORY_FLOORS));
 const STRAY_DOC_NAMES = new Set(["README.md", "CHANGELOG.md", "QUICK_REFERENCE.md"]);
 const REQUIRED_TEMPLATES = [
@@ -288,7 +303,8 @@ function validateSkillFile(rootAbs, errors) {
     }
   }
 
-  for (const label of CONTRACT_LABELS) {
+  const contractLabels = text.includes("## artifact_levels") ? [...CONTRACT_LABELS, "Loop"] : CONTRACT_LABELS;
+  for (const label of contractLabels) {
     const found = new RegExp(`\\b${escapeRegExp(label)}\\b`, "i").test(text);
     checks.contractLabels[label] = found;
     if (!found) {
@@ -539,6 +555,11 @@ function validateTemplates(rootAbs, errors) {
 function validateEvalCases(evalsAbs, errors) {
   /** @type {Record<string, number>} */
   const categories = {};
+  /** @type {Record<string, number>} */
+  const languages = {};
+  /** @type {Record<string, number>} */
+  const invocations = {};
+  let richCases = 0;
   let total = 0;
   /** @type {Map<string, number>} */
   const seenIds = new Map();
@@ -570,14 +591,24 @@ function validateEvalCases(evalsAbs, errors) {
 
     if (isJsonObject(row)) {
       total += 1;
+      if (isRichEvalRow(row)) richCases += 1;
       if (nonEmptyString(row.category) && ALLOWED_EVAL_CATEGORIES.has(row.category.trim())) {
         const category = row.category.trim();
         categories[category] = (categories[category] || 0) + 1;
       }
+      if (nonEmptyString(row.language)) {
+        const language = row.language.trim();
+        languages[language] = (languages[language] || 0) + 1;
+      }
+      if (nonEmptyString(row.invocation)) {
+        const invocation = row.invocation.trim();
+        invocations[invocation] = (invocations[invocation] || 0) + 1;
+      }
     }
   }
 
-  for (const [category, floor] of Object.entries(EVAL_CATEGORY_FLOORS)) {
+  const categoryFloors = richCases > 0 ? RICH_EVAL_CATEGORY_FLOORS : EVAL_CATEGORY_FLOORS;
+  for (const [category, floor] of Object.entries(categoryFloors)) {
     if ((categories[category] || 0) < floor) {
       errors.push(errorObject("EVAL_CATEGORY_FLOOR", `Expected at least ${floor} eval case(s) for category: ${category}`, {
         category,
@@ -587,10 +618,35 @@ function validateEvalCases(evalsAbs, errors) {
     }
   }
 
+  if (richCases > 0) {
+    for (const [language, floor] of Object.entries(EVAL_LANGUAGE_FLOORS)) {
+      if ((languages[language] || 0) < floor) {
+        errors.push(errorObject("EVAL_LANGUAGE_FLOOR", `Expected at least ${floor} eval case(s) for language: ${language}`, {
+          language,
+          expected: floor,
+          actual: languages[language] || 0,
+        }));
+      }
+    }
+
+    for (const [invocation, floor] of Object.entries(EVAL_INVOCATION_FLOORS)) {
+      if ((invocations[invocation] || 0) < floor) {
+        errors.push(errorObject("EVAL_INVOCATION_FLOOR", `Expected at least ${floor} eval case(s) for invocation: ${invocation}`, {
+          invocation,
+          expected: floor,
+          actual: invocations[invocation] || 0,
+        }));
+      }
+    }
+  }
+
   return {
     ok: !errors.some((error) => error.code.startsWith("EVAL_")),
     total,
     categories,
+    languages,
+    invocations,
+    richCases,
   };
 }
 
@@ -631,6 +687,16 @@ function validateEvalRow(row, lineNumber, seenIds) {
     });
   }
   if (!nonEmptyString(row.prompt)) fail("Eval case requires non-empty string prompt", { id: row.id });
+  if (isRichEvalRow(row)) {
+    for (const field of ["language", "invocation", "risk", "runner", "judge", "gate"]) {
+      if (!nonEmptyString(row[field])) fail(`Eval case requires non-empty string ${field}`, { id: row.id, field });
+    }
+    if (!Array.isArray(row.trace) || row.trace.length === 0) {
+      fail("Eval case trace must contain at least one non-empty string", { id: row.id });
+    } else {
+      validateStringArray(row.trace, "trace", row.id, fail);
+    }
+  }
   if (!isJsonObject(row.expected)) {
     fail("Eval case requires expected object", { id: row.id });
     return errors;
@@ -648,6 +714,11 @@ function validateEvalRow(row, lineNumber, seenIds) {
     validateStringArray(row.expected.mustNot, "expected.mustNot", row.id, fail);
   }
   return errors;
+}
+
+/** @param {JsonObject} row @returns {boolean} */
+function isRichEvalRow(row) {
+  return ["language", "invocation", "risk", "runner", "judge", "trace", "gate"].some((field) => field in row);
 }
 
 /**
