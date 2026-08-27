@@ -2,202 +2,153 @@
 
 > 영어판: [`command-family.md`](command-family.md)
 
-이 문서는 `uditgoenka/autoresearch`의 command surface를 이 저장소에서 instruction pattern으로 해석하기 위한 기준이다. 실제 외부 skill을 설치하거나 실행하라는 뜻이 아니다.
+이 문서는 command 형태의 upstream example을 runtime-neutral archetype으로 해석한다. 모든 runtime이 같은 command name, syntax, hook, artifact set을 제공한다고 약속하지 않는다.
 
-## 1. Core loop
+## Shared contract
 
-사용 조건:
-
-- scalar metric이 있다.
-- verify command가 있다.
-- scope가 제한되어 있다.
-- rollback 가능하다.
-
-패턴:
+모든 archetype은 Goal, Scope, Verify/Evidence, Guard, Budget, Stop, Authorization을 선언한다. Mutating loop는 다음을 따른다.
 
 ```text
-Goal → Scope → Metric → Verify → Guard → Iterations
-Modify one thing → Verify → Keep/Discard → Log → Repeat
+Preflight -> Baseline -> Hypothesis -> Checkpoint -> Verify -> Guard
+-> Decide -> Restore if needed -> Record -> Stop/Handoff
 ```
 
-## 2. Plan
+Bare-command upstream surface는 classic config-driven execution, goal-directed orchestration, guided setup 사이를 route할 수 있다. Trustworthy predicate가 있는 archetype만 자동으로 loop하며 subjective 또는 terminal task는 single-pass 또는 human-gated일 수 있다.
 
-사용 조건:
+## Plan
 
-- Goal은 있지만 Scope/Metric/Verify가 불분명하다.
-- 바로 반복을 돌리면 metric이 잘못될 위험이 크다.
+분해와 measurable selection이 필요한 broad goal에 사용한다.
 
-출력:
+- Locked rubric 또는 metric으로 bounded plan candidate를 비교한다.
+- Decision rationale와 rejected alternative를 남긴다.
+- Plan은 implementation이나 side effect를 승인하지 않는다.
 
-- 실행 가능한 config block
-- verify dry-run 결과
-- handoff payload
+## Debug
 
-## 3. Debug
+원인을 모를 때 사용한다.
 
-사용 조건:
+- Hypothesis -> minimal probe -> evidence -> keep/discard hypothesis.
+- Crash/timeout/parser/infra outcome을 구분해 보존한다.
+- Code fix는 root-cause evidence 뒤의 새 iteration이지 failed probe를 제자리에서 다시 쓰는 작업이 아니다.
 
-- 증상은 있지만 root cause가 불분명하다.
-- 여러 hypothesis를 체계적으로 테스트해야 한다.
+## Fix
 
-패턴:
+Failure를 재현할 수 있을 때 사용한다.
+
+- 먼저 failing behavior를 고정한다.
+- Falsifiable change 하나를 만든다.
+- Regression proof와 mandatory guard가 통과해야 keep한다.
+
+## Reason
+
+산출물이 code가 아니라 decision일 때 사용한다.
+
+- Alternative, assumption, counterexample, disconfirming evidence를 만든다.
+- Ranking 전에 decision criteria를 고정한다.
+- Unresolved uncertainty를 기록하고 winner를 만들어내지 않는다.
+
+## Probe
+
+Bounded feasibility 또는 data gathering에 사용한다.
+
+- Probe를 reversible하고 isolated하게 유지한다.
+- Observed capability와 production readiness를 구분한다.
+- Retained finding을 project-owned test, doc, follow-up plan으로 승격한다.
+
+## Learn
+
+Repeated evidence에서 reusable pattern을 추출할 때 사용한다.
+
+- Independent case 두 개 이상을 요구하고 아니면 provisional로 표시한다.
+- Scope와 counterexample을 기록한다.
+- Repository-specific incident 하나를 universal rule로 만들지 않는다.
+
+## Predict
+
+나중에 score할 수 있는 forecast에 사용한다.
+
+- Horizon, outcome schema, scoring rule, resolution source를 미리 선언한다.
+- Outcome을 알기 전에 prediction timestamp를 고정한다.
+- Resolution evidence 뒤 forecast를 수정하지 않는다.
+
+## Improve
+
+Faithful evaluator가 있는 existing artifact에 사용한다.
+
+- Baseline behavior를 보존하고 measured weakness 하나를 다룬다.
+- Style/quality score를 inherently objective number가 아니라 profile-specific evidence로 취급한다.
+- Repeated adaptation이 evaluator에 overfit할 수 있으면 untouched confirmation set을 쓴다.
+
+## Scenario
+
+Seed feature, flow, failure domain의 edge-case coverage를 체계적으로 찾을 때 사용한다.
 
 ```text
-symptom → recon → hypothesis → test → confirmed/disproven/inconclusive → log → repeat
+seed -> coverage dimensions -> generate -> classify new/extension/duplicate
+-> log -> saturation check -> repeat
 ```
 
-검증:
+- Dimension과 iteration을 제한한다.
+- Declared saturation 또는 budget에서 중단한다.
+- Scenario discovery는 구현이 해당 scenario를 처리한다는 증거가 아니다. Retained scenario를 project-owned test나 acceptance check로 바꾼다.
 
-- 모든 confirmed finding은 file:line, reproduction, evidence를 가져야 한다.
-- disproven hypothesis도 기록한다.
+## Iteration analytics
 
-## 4. Fix
+`results.tsv` 또는 동등한 recorded evidence를 분석할 때 사용한다.
 
-사용 조건:
+- Trend, plateau, crash cluster, invalid run, promising hypothesis를 찾는다.
+- Finalized outcome을 다시 labeling하지 않는다.
+- Local/upstream TSV analyzer를 behavioral eval 및 legacy OpenAI Evals platform과 구분한다.
 
-- test/type/lint/build error count를 줄이는 것이 목표다.
-- error list가 command로 재현된다.
+## Behavioral evals
 
-패턴:
+Artifact 또는 agent trace를 outcome, process, style, efficiency로 평가할 때 사용한다.
 
-```text
-run target → count errors → pick one → fix one → verify → guard → keep/revert
-```
+- Candidate 전에 case, check/rubric, judge identity, aggregation을 고정한다.
+- Process가 claim의 일부면 trace/tool-call/handoff evidence를 보존한다.
+- [`config-and-metrics.ko.md`](config-and-metrics.ko.md)의 metric/judge reliability contract를 적용한다.
 
-금지:
+## Regression
 
-- 여러 error category를 한 번에 고치기
-- error count가 줄지 않았는데 keep하기
-- guard failure를 무시하기
+Changed state가 green baseline을 red로 바꾸는지 검증할 때 사용한다.
 
-## 5. Evals
+- Base와 candidate를 isolated owned state에서 평가한다.
+- Malformed, truncated, missing, invalid evidence는 fail closed한다.
+- Unavailable dimension을 명시한다.
+- Evaluable baseline을 만든 dimension이 없으면 `STABLE`을 보고하지 않는다.
 
-사용 조건:
+## Security
 
-- 반복 결과 TSV/log가 있다.
-- trend, plateau, regression, success pattern을 분석해야 한다.
+기본은 read-only review와 proof다. Finding은 fix, disclosure, exploit, transmission, production access를 승인하지 않는다.
 
-출력:
+- Trust boundary와 threat model을 고정한다.
+- Verification과 remediation을 분리한다.
+- Credential, sensitive data, disclosure, external action은 controlling authorization rule로 route한다.
 
-- kept/discarded rate
-- metric trajectory
-- plateau 여부
-- 가장 효과적인 change type
-- 계속/중단/전략 변경 권고
+## Ship
 
-## 6. Reason
+Ship은 readiness verification 뒤 separate finalization gate로 다룬다.
 
-사용 조건:
+1. Project-defined check를 실행하고 artifact를 검사한다.
+2. Blocker와 residual risk를 보고한다.
+3. Exact action이 명시적으로 승인되지 않으면 deploy, publish, push, release, destructive rollback, credential use, production mutation 전에 중단한다.
+4. 승인된 finalization action 뒤 target identity와 outcome을 검증한다.
 
-- numeric metric이 없는 주관/전략/설계 결정이다.
-- blind judge/rubric/convergence를 fitness function으로 만들 수 있다.
+Repository override: upstream `--auto` flag는 사용자 승인이 아니다.
 
-패턴:
+## Handoff and chaining
 
-```text
-candidate A → critique → candidate B → synthesis → blind judge panel → incumbent → convergence
-```
+모든 command가 handoff를 쓴다고 가정하지 않는다. Pinned upstream v2.2.2 surface에서는 chain command가 `handoff.json`을 쓰고 downstream command가 소비한다. Local runtime은 다른 artifact를 사용할 수 있다.
 
-주의:
+Handoff는 [`core-loop.ko.md`](core-loop.ko.md)와 [`safety-and-observability.ko.md`](safety-and-observability.ko.md)를 만족할 때만 automatically resumable하다. Immutable frontier, explicit candidate, evidence, ownership, cleanup, redaction, revalidation state가 없는 summary filename은 resume contract가 아니다.
 
-- judge 기준이 없으면 reasoning loop가 취향 싸움이 된다.
-- candidate label을 blind/randomize해야 평가 편향을 줄일 수 있다.
+## Sources
 
-## 7. Probe
+> 출처 확인 2026-08-27. Upstream behavior는 release v2.2.2, commit `050e30dc4ba0974b03f2873111b9901ec3211390` 기준이다.
 
-사용 조건:
-
-- 요구사항이 흐릿하거나 숨은 제약이 많다.
-- 자동 반복 전에 Goal/Scope/Metric/Verify를 더 캐야 한다.
-
-출력:
-
-- constraint list
-- ambiguity list
-- ready-to-run config 또는 plan handoff
-
-## 8. Learn
-
-사용 조건:
-
-- codebase 문서 생성/갱신/검증이 목표다.
-
-패턴:
-
-```text
-scout codebase → generate/update docs → validate links/coverage → fix → repeat
-```
-
-주의:
-
-- docs loop도 metric/coverage/required sections/broken links 같은 검증 기준이 필요하다.
-
-## 9. Predict
-
-사용 조건:
-
-- 반복을 돌리기 전에 가설 자체의 품질을 올려야 한다.
-- 단일 관점 분석이 anchoring이나 도메인 맹점에 빠질 위험이 크다.
-
-패턴:
-
-```text
-recon → 페르소나별 독립 분석(교차 대화 없음) → 구조화된 교차 심문 → 투표·합의 → 가설 큐
-```
-
-주의:
-
-- 루프가 아니라 one-shot이다. iteration을 돌리지 않는다.
-- 페르소나가 서로의 결론에 휩쓸리는 herd 현상을 감지·차단하는 규칙이 없으면 관점 다양성이 사라져 단일 관점과 같아진다.
-- 독립 분석 단계에서 페르소나 간 정보를 공유하면 이 패턴의 이점이 사라진다.
-
-## 10. Improve
-
-사용 조건:
-
-- 코드 품질이 아니라 **무엇을 만들지**를 근거 기반으로 정해야 한다.
-- ICP(이상적 고객군)가 정의되어 있거나 정의할 수 있다.
-
-패턴:
-
-```text
-제품 컨텍스트 확보 → 다중 소스 리서치(포화까지) → ICP 게이트로 순위 → 선택 → 근거 사슬을 가진 PRD
-```
-
-주의:
-
-- 코드 개선(core loop), 버그(debug), 보안(security), 아키텍처 결정(reason)과 혼동하지 않는다.
-- 리서치 단계는 [`../../sourcing/reliable-search.ko.md`](../../sourcing/reliable-search.ko.md)의 삼각검증·출처 등급·중복 검색 방지 규칙을 그대로 적용한다.
-- 순위는 근거에 연결되어야 하며, 근거 없는 우선순위는 gut-feel 로드맵과 다르지 않다.
-
-## 11. Regression
-
-사용 조건:
-
-- push/merge 전에 “되던 것이 깨졌는가”를 판정해야 한다.
-- 프로젝트에 test/bench/snapshot/migrate 같은 자체 검증 명령이 있다.
-
-패턴:
-
-```text
-분류(dimension별 baseline green-set 확정) → base ref 격리 baseline 캡처 → 후보 재실행 → 등급별 STABLE/UNSTABLE 판정
-```
-
-주의:
-
-- **green→red 전이만 판정한다.** 원래 실패하던 것, 절대 품질, 신규 버그는 대상이 아니다.
-- baseline은 base ref의 격리된 작업 트리에서 떠야 한다. 현재 트리에서 재실행한 값을 baseline으로 쓰면 판정이 오염된다.
-- flaky test와 성능 지터를 흡수하는 등급 기준이 없으면 게이트가 noise로 무력화되고, 결국 muted 된다.
-- 이것은 번들 프레임워크가 아니라 프로토콜이다. 검증 명령은 프로젝트 소유다.
-
-## 12. Security and Ship
-
-Security는 기본 read-only audit로 시작한다. fix는 opt-in이다.
-
-Ship은 외부 side effect가 생길 수 있으므로 다음이 필수다.
-
-- explicit user approval before deploy/publish/push
-- dry-run
-- rollback plan
-- post-verify
-- environment boundary
+- [v2.2.2 release](https://github.com/uditgoenka/autoresearch/releases/tag/v2.2.2)
+- [Pinned root skill and router](https://github.com/uditgoenka/autoresearch/blob/050e30dc4ba0974b03f2873111b9901ec3211390/.agents/skills/autoresearch/SKILL.md)
+- [Pinned scenario archetype](https://github.com/uditgoenka/autoresearch/blob/050e30dc4ba0974b03f2873111b9901ec3211390/.agents/skills/autoresearch/scenario.md)
+- [Pinned regression archetype](https://github.com/uditgoenka/autoresearch/blob/050e30dc4ba0974b03f2873111b9901ec3211390/.agents/skills/autoresearch/regression.md)
+- [Pinned chains and handoff behavior](https://github.com/uditgoenka/autoresearch/blob/050e30dc4ba0974b03f2873111b9901ec3211390/guide/chains-and-combinations.md)
+- [OpenAI skill evaluation guidance](https://developers.openai.com/blog/eval-skills)

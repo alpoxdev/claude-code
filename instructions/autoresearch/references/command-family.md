@@ -2,202 +2,153 @@
 
 > Korean version: [`command-family.ko.md`](command-family.ko.md)
 
-This document is the basis for interpreting the command surface of `uditgoenka/autoresearch` as instruction patterns in this repository. It does not mean you should install or run the external skill.
+This document maps command-shaped upstream examples into runtime-neutral archetypes. It does not promise that every runtime exposes the same command name, syntax, hooks, or artifact set.
 
-## 1. Core loop
+## Shared contract
 
-Use when:
-
-- A scalar metric exists.
-- A verify command exists.
-- Scope is restricted.
-- Rollback is possible.
-
-Pattern:
+Every archetype declares Goal, Scope, Verify/Evidence, Guard, Budget, Stop, and Authorization. A mutating loop follows:
 
 ```text
-Goal -> Scope -> Metric -> Verify -> Guard -> Iterations
-Modify one thing -> Verify -> Keep/Discard -> Log -> Repeat
+Preflight -> Baseline -> Hypothesis -> Checkpoint -> Verify -> Guard
+-> Decide -> Restore if needed -> Record -> Stop/Handoff
 ```
 
-## 2. Plan
+The bare-command upstream surface may route among classic config-driven execution, goal-directed orchestration, and guided setup. Only archetypes with a trustworthy predicate loop automatically; subjective or terminal tasks may be single-pass or human-gated.
 
-Use when:
+## Plan
 
-- A goal exists but scope, metric, or verify is unclear.
-- Running the loop immediately risks an incorrect metric.
+Use for a broad goal that needs decomposition and measurable selection.
 
-Output:
+- Compare bounded plan candidates against one locked rubric or metric.
+- Keep decision rationale and rejected alternatives.
+- A plan does not authorize implementation or side effects.
 
-- An executable config block
-- A verify dry-run result
-- A handoff payload
+## Debug
 
-## 3. Debug
+Use when the cause is unknown.
 
-Use when:
+- Hypothesis -> minimal probe -> evidence -> keep/discard hypothesis.
+- Preserve crash/timeout/parser/infra outcomes separately.
+- A code fix is a new iteration after root-cause evidence, not an in-place rewrite of the failed probe.
 
-- Symptoms exist but the root cause is unclear.
-- Several hypotheses must be tested systematically.
+## Fix
 
-Pattern:
+Use when a failure is reproducible.
+
+- Pin the failing behavior first.
+- Make one falsifiable change.
+- Require the regression proof and mandatory guards to pass before keep.
+
+## Reason
+
+Use when the deliverable is a decision rather than code.
+
+- Generate alternatives, assumptions, counterexamples, and disconfirming evidence.
+- Lock decision criteria before ranking.
+- Record unresolved uncertainty; do not manufacture a winner.
+
+## Probe
+
+Use for bounded feasibility or data gathering.
+
+- Keep the probe reversible and isolated.
+- Separate observed capability from production readiness.
+- Promote retained findings into project-owned tests, docs, or a follow-up plan.
+
+## Learn
+
+Use to extract a reusable pattern from repeated evidence.
+
+- Require more than one independent case or label the result provisional.
+- Record scope and counterexamples.
+- Do not turn one repository-specific incident into a universal rule.
+
+## Predict
+
+Use when a forecast can be scored later.
+
+- Predeclare horizon, outcome schema, scoring rule, and resolution source.
+- Timestamp predictions before outcomes are known.
+- Never edit a forecast after resolution evidence appears.
+
+## Improve
+
+Use for an existing artifact with a faithful evaluator.
+
+- Preserve baseline behavior and target one measured weakness.
+- Treat style/quality scores as profile-specific evidence, not inherently objective numbers.
+- Use an untouched confirmation set when repeated adaptation can overfit the evaluator.
+
+## Scenario
+
+Use when a seed feature, flow, or failure domain needs systematic edge-case coverage.
 
 ```text
-symptom -> recon -> hypothesis -> test -> confirmed/disproven/inconclusive -> log -> repeat
+seed -> coverage dimensions -> generate -> classify new/extension/duplicate
+-> log -> saturation check -> repeat
 ```
 
-Verification:
+- Bound dimensions and iterations.
+- Stop at declared saturation or budget.
+- Scenario discovery is not proof that implementation handles the scenario. Convert retained scenarios into project-owned tests or acceptance checks.
 
-- Every confirmed finding must carry file:line, a reproduction, and evidence.
-- Record disproven hypotheses too.
+## Iteration analytics
 
-## 4. Fix
+Use to analyze `results.tsv` or equivalent recorded evidence.
 
-Use when:
+- Detect trend, plateau, crash clusters, invalid runs, and promising hypotheses.
+- Do not relabel previously finalized outcomes.
+- Distinguish this local/upstream TSV analyzer from behavioral evals and from the legacy OpenAI Evals platform.
 
-- The goal is reducing test, type, lint, or build error counts.
-- The error list is reproducible by command.
+## Behavioral evals
 
-Pattern:
+Use when artifacts or agent traces need outcome, process, style, and efficiency evaluation.
 
-```text
-run target -> count errors -> pick one -> fix one -> verify -> guard -> keep/revert
-```
+- Lock cases, checks/rubrics, judge identities, and aggregation before candidates.
+- Preserve trace/tool-call/handoff evidence when process is part of the claim.
+- Apply the metric/judge reliability contract in [`config-and-metrics.md`](config-and-metrics.md).
 
-Forbidden:
+## Regression
 
-- Fixing several error categories at once
-- Keeping a change when the error count did not drop
-- Ignoring a guard failure
+Use to test whether a changed state turns a green baseline red.
 
-## 5. Evals
+- Evaluate base and candidate in isolated owned state.
+- Malformed, truncated, missing, or invalid evidence fails closed.
+- List unavailable dimensions explicitly.
+- Never report `STABLE` when no dimension produced an evaluable baseline.
 
-Use when:
+## Security
 
-- Iteration results exist as TSV or logs.
-- Trends, plateaus, regressions, and success patterns must be analyzed.
+Default to read-only review and proof. A finding is not authorization to fix, disclose, exploit, transmit, or access production.
 
-Output:
+- Pin trust boundaries and threat model.
+- Separate verification from remediation.
+- Route credentials, sensitive data, disclosure, and external actions through controlling authorization rules.
 
-- Keep/discard rate
-- Metric trajectory
-- Whether a plateau was reached
-- The most effective change type
-- A continue, stop, or strategy-change recommendation
+## Ship
 
-## 6. Reason
+Treat Ship as readiness verification followed by a separate finalization gate.
 
-Use when:
+1. Run project-defined checks and inspect artifacts.
+2. Report blockers and residual risk.
+3. Stop before deploy, publish, push, release, destructive rollback, credential use, or production mutation unless the exact action is explicitly authorized.
+4. Verify target identity and outcome after an authorized finalization action.
 
-- The decision is subjective, strategic, or architectural with no numeric metric.
-- A blind judge, rubric, or convergence criterion can serve as the fitness function.
+Repository override: an upstream `--auto` flag is not user approval.
 
-Pattern:
+## Handoff and chaining
 
-```text
-candidate A -> critique -> candidate B -> synthesis -> blind judge panel -> incumbent -> convergence
-```
+Do not assume every command writes a handoff. In the pinned upstream v2.2.2 surface, chain commands write `handoff.json` and downstream commands consume it. Local runtimes may use different artifacts.
 
-Caution:
+A handoff is automatically resumable only when it satisfies [`core-loop.md`](core-loop.md) and [`safety-and-observability.md`](safety-and-observability.md). A summary filename without immutable frontier, explicit candidate, evidence, ownership, cleanup, redaction, and revalidation state is not a resume contract.
 
-- Without judge criteria, a reasoning loop degenerates into a taste argument.
-- Candidate labels must be blinded or randomized to reduce evaluation bias.
+## Sources
 
-## 7. Probe
+> Sources checked 2026-08-27. Upstream behavior is described at release v2.2.2, commit `050e30dc4ba0974b03f2873111b9901ec3211390`.
 
-Use when:
-
-- Requirements are hazy or hidden constraints abound.
-- Goal, scope, metric, and verify must be dug out before automated iteration.
-
-Output:
-
-- A constraint list
-- An ambiguity list
-- A ready-to-run config or a plan handoff
-
-## 8. Learn
-
-Use when:
-
-- The goal is generating, updating, or validating codebase documentation.
-
-Pattern:
-
-```text
-scout codebase -> generate/update docs -> validate links/coverage -> fix -> repeat
-```
-
-Caution:
-
-- A docs loop also needs verification criteria such as metrics, coverage, required sections, and broken links.
-
-## 9. Predict
-
-Use when:
-
-- The quality of the hypotheses themselves must improve before iterating.
-- Single-perspective analysis risks anchoring or domain blindness.
-
-Pattern:
-
-```text
-recon -> independent per-persona analysis (no cross-talk) -> structured cross-examination -> voting and consensus -> hypothesis queue
-```
-
-Caution:
-
-- This is one-shot, not a loop. Do not run iterations.
-- Without a rule to detect and block herd behavior, where personas drift toward each other's conclusions, perspective diversity vanishes and the result equals a single perspective.
-- Sharing information between personas during the independent stage destroys the benefit of this pattern.
-
-## 10. Improve
-
-Use when:
-
-- You must decide **what to build**, on evidence, rather than improve code quality.
-- An ICP (ideal customer profile) is defined or definable.
-
-Pattern:
-
-```text
-establish product context -> multi-source research (to saturation) -> rank through the ICP gate -> select -> PRDs with evidence chains
-```
-
-Caution:
-
-- Do not confuse it with code improvement (core loop), bugs (debug), security (security), or architecture decisions (reason).
-- The research stage applies the triangulation, source grading, and duplicate-search prevention rules of [`../../sourcing/reliable-search.md`](../../sourcing/reliable-search.md) as-is.
-- Rankings must connect to evidence; a priority without evidence is no different from a gut-feel roadmap.
-
-## 11. Regression
-
-Use when:
-
-- You must judge "did something that used to work break?" before push or merge.
-- The project has its own verification commands such as test, bench, snapshot, or migrate.
-
-Pattern:
-
-```text
-classification (fix the per-dimension baseline green-set) -> isolated baseline capture at the base ref -> re-run the candidate -> tiered STABLE/UNSTABLE verdict
-```
-
-Caution:
-
-- **It judges only green-to-red transitions.** Things that already failed, absolute quality, and net-new bugs are out of scope.
-- The baseline must be captured from an isolated worktree of the base ref. Using a value re-run in the current tree contaminates the verdict.
-- Without tiering criteria that absorb flaky tests and performance jitter, the gate is neutralized by noise and eventually muted.
-- This is a protocol, not a bundled framework. The verification commands belong to the project.
-
-## 12. Security and Ship
-
-Security starts as a read-only audit by default. Fixes are opt-in.
-
-Ship can produce external side effects, so the following are required.
-
-- Explicit user approval before deploy, publish, or push
-- Dry run
-- Rollback plan
-- Post-verify
-- Environment boundary
+- [v2.2.2 release](https://github.com/uditgoenka/autoresearch/releases/tag/v2.2.2)
+- [Pinned root skill and router](https://github.com/uditgoenka/autoresearch/blob/050e30dc4ba0974b03f2873111b9901ec3211390/.agents/skills/autoresearch/SKILL.md)
+- [Pinned scenario archetype](https://github.com/uditgoenka/autoresearch/blob/050e30dc4ba0974b03f2873111b9901ec3211390/.agents/skills/autoresearch/scenario.md)
+- [Pinned regression archetype](https://github.com/uditgoenka/autoresearch/blob/050e30dc4ba0974b03f2873111b9901ec3211390/.agents/skills/autoresearch/regression.md)
+- [Pinned chains and handoff behavior](https://github.com/uditgoenka/autoresearch/blob/050e30dc4ba0974b03f2873111b9901ec3211390/guide/chains-and-combinations.md)
+- [OpenAI skill evaluation guidance](https://developers.openai.com/blog/eval-skills)
