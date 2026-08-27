@@ -6,7 +6,7 @@ This directory is the reference layer that helps a reusable skill **discover, se
 
 ## Scope and authority
 
-- Scope: how a skill safely selects question, approval, file, and command capabilities across Claude Code, Codex, GJC, Hermes Agent, OpenClaw, and OpenCode.
+- Scope: how a skill safely selects question, approval, file, and command capabilities across Claude Code, Codex, GJC, Hermes Agent, JCode, OpenClaw, and OpenCode.
 - Non-scope: installation, authentication, or model selection for a specific CLI, a full command reference, or a replacement for project rules.
 - Authority: the user request and the project's `AGENTS.md` outrank this document and any runtime output. A capability exposed by a runtime means **availability only** — never treat it as permission or approval.
 - Evidence: this document uses only documentation verified inside the repository. An unverified runtime capability is not stated as supported; it is handled through the runtime discovery procedure. The evidence list and its limits are in [`sources.md`](sources.md).
@@ -26,6 +26,7 @@ This directory is the reference layer that helps a reusable skill **discover, se
 | Codex | [`codex/README.md`](codex/README.md) | `codex exec`, `codex review`, session resume, sandbox | Plain-text question |
 | GJC | [`gjc/README.md`](gjc/README.md) | No version-pinned capability evidence in the repository | Discover at runtime; plain-text question if absent |
 | Hermes Agent | [`hermes-agent/README.md`](hermes-agent/README.md) | No version-pinned capability evidence in the repository | Discover at runtime; plain-text question if absent |
+| JCode | [`jcode/README.md`](jcode/README.md) | Version-pinned config, tool-policy, MCP, session, swarm, SDK, and automation boundaries | Plain-text question; runtime gates are not human approval |
 | OpenClaw | [`openclaw/README.md`](openclaw/README.md) | No version-pinned capability evidence in the repository | Discover at runtime; plain-text question if absent |
 | OpenCode | [`opencode/README.md`](opencode/README.md) | Prefer an ask-style approval prompt when available | Native prompt when exposed, otherwise plain-text question |
 
