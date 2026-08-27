@@ -73,11 +73,15 @@ trace: required trajectory evidence or none
 gate: pass/fail and ship decision
 ```
 
+The maintained regression surface is `../assets/evals/docs-maker.jsonl`. Run or manually exercise every changed behavior against that fixture before completion. Do not rewrite expected behavior merely to make a candidate pass; add newly observed failures as regression cases.
+
 ## 6. Readback and Bilingual Gate
 
 Read the document as a new maintainer, an agent under context pressure, and a reviewer seeking stale, unsupported, mixed-concern, future-dated, or authority-conflicting claims. Fail when the validation path requires unrelated-file searching.
 
 Check English/Korean mirrors for equivalent contract fields, route conditions, loop/runtime behavior, phase order, risk depth, gates, and representative behavioral cases—not file presence alone.
+
+Compare `../assets/evals/docs-maker.jsonl` with `../assets/evals/docs-maker.ko.jsonl` by scenario type, expected route, required/forbidden behavior, trace, and gate. IDs and prose may be localized; behavioral coverage may not disappear.
 
 ## 7. Reviewer Quick Gate
 

@@ -73,11 +73,15 @@ trace: required trajectory evidence or none
 gate: pass/fail and ship decision
 ```
 
+유지되는 regression surface는 `../assets/evals/docs-maker.ko.jsonl`입니다. 완료 전에 변경된 모든 behavior를 이 fixture로 실행하거나 수동 점검합니다. Candidate를 통과시키려고 expected behavior를 바꾸지 말고, 새로 관측한 failure를 regression case로 추가합니다.
+
 ## 6. Readback 및 Bilingual Gate
 
 갱신한 문서를 새 maintainer, context pressure 아래 실행하는 agent, 오래되었거나 근거 없거나 관심사가 섞였거나 미래 날짜이거나 authority가 충돌하는 claim을 찾는 reviewer 관점에서 읽습니다. validation path를 위해 무관한 파일을 검색해야 하면 실패입니다.
 
 English/Korean mirror는 파일 존재만이 아니라 동등한 contract field, route condition, loop/runtime behavior, phase order, risk depth, gate, 대표 behavioral case를 점검합니다.
+
+`../assets/evals/docs-maker.jsonl`과 `../assets/evals/docs-maker.ko.jsonl`을 scenario type, expected route, required/forbidden behavior, trace, gate 기준으로 비교합니다. ID와 prose는 지역화할 수 있지만 behavioral coverage는 사라지면 안 됩니다.
 
 ## 7. Reviewer Quick Gate
 
