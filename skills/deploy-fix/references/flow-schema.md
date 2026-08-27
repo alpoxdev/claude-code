@@ -1,6 +1,6 @@
 # Deploy Fix Flow Schema
 
-> JSON schema for `.hyper/deploy-fix/flow.json` -- used in complex path only.
+> Flow-state template for `.hyper/deploy-fix/flow.json` -- used in complex path only. This is a documented contract, not a formal JSON Schema document.
 
 ## Schema
 
@@ -17,6 +17,7 @@
     "scope": "repo-wide | workspace:name | ci-step:name | deploy-target:name",
     "build_command": "the command that fails (if applicable)",
     "ci_provider": "GitHub Actions | Vercel | GitLab CI | other (if applicable)",
+    "target": "provider project/environment/target when applicable",
     "related_files": ["config/code file paths if known"]
   },
   "current_phase": "investigate | options | confirm | fix | verify",
@@ -67,7 +68,15 @@
       "status": "pending | in_progress | completed | failed",
       "commands_run": ["validation commands executed"],
       "result": "pass | fail",
-      "notes": "verification details"
+      "notes": "verification details",
+      "external_action": {
+        "requested": false,
+        "authorized_action": "exact retry/deploy/publish/rollback action or null",
+        "authorized_target": "exact provider/project/environment/target or null",
+        "preflight": "pass | fail | not_run",
+        "rollback_or_stop": "rollback or stop condition or null",
+        "post_check": "defined post-action check or null"
+      }
     }
   }
 }
@@ -89,6 +98,9 @@
 - Update `updated_at` on every write.
 - When all phases are `completed`, set top-level `status` to `completed`.
 - If `verify` fails, set its status to `failed` and fix within scope before retrying.
+- Before resume, require `skill: deploy-fix`, `complexity: complex`, a matching current request/scope/target, valid phase statuses, and a non-completed top-level status. Treat malformed, stale, cross-workspace, conflicting, or completed state as non-resumable until reconciled.
+- Never inherit user confirmation or external-action permission from a previous or interrupted flow. Reconfirm before `fix` when selection is ambiguous and before every remote/production action.
+- Allow at most three materially different failed repair approaches. After the third failure, set top-level `status` to `blocked`, preserve attempt evidence, and stop for one precise input.
 - The `id` uses the creation timestamp: `deploy-fix-20260327-100000`.
 
 ## Example: initial state

@@ -142,7 +142,6 @@ cp -R hypercore/skills/git-maker your-project/.claude/skills/
 | `pre-deploy` | 배포 전 lint/타입/빌드 검증 | All |
 | `deploy-fix` | 빌드/CI/배포 장애 진단 및 수정 | All |
 | `version-update` | 시맨틱 버전 업데이트 및 릴리스 | All |
-| `autoresearch-code` | 반복 실험·이진 eval 기반 코드베이스 자동 최적화 | All |
 
 ### Git 워크플로
 

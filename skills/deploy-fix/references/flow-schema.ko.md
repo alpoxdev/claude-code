@@ -1,6 +1,6 @@
 # 배포 수정 Flow Schema
 
-> 복잡 경로에서만 사용하는 `.hyper/deploy-fix/flow.json`용 JSON schema.
+> 복잡 경로에서만 사용하는 `.hyper/deploy-fix/flow.json`용 flow-state template. 정식 JSON Schema 문서가 아니라 문서화된 계약이다.
 
 ## Schema
 
@@ -17,6 +17,7 @@
     "scope": "repo-wide | workspace:name | ci-step:name | deploy-target:name",
     "build_command": "실패하는 명령 (해당하는 경우)",
     "ci_provider": "GitHub Actions | Vercel | GitLab CI | other (해당하는 경우)",
+    "target": "해당하는 경우 provider project/environment/target",
     "related_files": ["알고 있다면 config/code 파일 경로"]
   },
   "current_phase": "investigate | options | confirm | fix | verify",
@@ -67,7 +68,15 @@
       "status": "pending | in_progress | completed | failed",
       "commands_run": ["실행한 검증 명령"],
       "result": "pass | fail",
-      "notes": "검증 세부 사항"
+      "notes": "검증 세부 사항",
+      "external_action": {
+        "requested": false,
+        "authorized_action": "정확한 retry/deploy/publish/rollback action 또는 null",
+        "authorized_target": "정확한 provider/project/environment/target 또는 null",
+        "preflight": "pass | fail | not_run",
+        "rollback_or_stop": "rollback 또는 stop condition 또는 null",
+        "post_check": "정의된 post-action check 또는 null"
+      }
     }
   }
 }
@@ -89,6 +98,9 @@
 - 쓸 때마다 `updated_at`을 갱신한다.
 - 모든 phase가 `completed`이면 최상위 `status`를 `completed`로 설정한다.
 - `verify`가 실패하면 status를 `failed`로 설정하고 범위 안에서 수정한 뒤 다시 시도한다.
+- 재개 전 `skill: deploy-fix`, `complexity: complex`, 현재 request/scope/target 일치, 유효한 phase status, 미완료 top-level status를 요구한다. malformed, stale, cross-workspace, conflicting, completed state는 조정하기 전까지 non-resumable이다.
+- 이전 또는 중단된 flow의 사용자 선택이나 external-action permission을 상속하지 않는다. 선택이 모호하면 `fix` 전에, remote/production action은 매번 다시 확인한다.
+- 실질적으로 다른 실패 접근은 최대 3개까지 허용한다. 세 번째 실패 뒤에는 top-level `status`를 `blocked`로 설정하고 attempt evidence를 보존한 뒤 정확한 입력 하나를 요청하며 멈춘다.
 - `id`는 생성 timestamp를 사용한다: `deploy-fix-20260327-100000`.
 
 ## Example: initial state

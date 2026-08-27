@@ -1,19 +1,6 @@
 {
   "scripts": [
     {
-      "path": "skills/autoresearch-code/scripts/render-dashboard.mjs",
-      "family": "autoresearch-code",
-      "legacyOrigin": "former-sh",
-      "usage": "render-dashboard",
-      "behavior": "render-dashboard",
-      "sourcePreimage": {
-        "path": "skills/autoresearch-code/scripts/render-dashboard.sh",
-        "sha256": "3eb6943db2dc7b484074278190e9521017dd83cbb6d00016bf062c3aa3354c93",
-        "gitMode": "100755"
-      },
-      "behaviorContractId": "autoresearch-code--render-dashboard"
-    },
-    {
       "path": "skills/autoresearch-skill/scripts/render-dashboard.mjs",
       "family": "autoresearch-skill",
       "legacyOrigin": "former-sh",

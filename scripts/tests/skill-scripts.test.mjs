@@ -15,7 +15,6 @@ const contractsPath = join(root, "scripts/fixtures/skill-script-parity/behavior/
 const validatorPath = join(root, "scripts/validate-skills.mjs");
 const currentVersionPath = join(root, "skills/version-update/scripts/version-current.mjs");
 const versionApplyPath = join(root, "skills/version-update/scripts/version-apply.mjs");
-const dashboardPath = join(root, "skills/autoresearch-code/scripts/render-dashboard.mjs");
 const versionGitCommitPath = join(root, "skills/version-update/scripts/git-commit.mjs");
 const versionGitPushPath = join(root, "skills/version-update/scripts/git-push.mjs");
 const deployCheckPath = join(root, "skills/pre-deploy/scripts/deploy-check.mjs");
@@ -97,15 +96,15 @@ function killRecordedPid(pidFile) {
 }
 
 
-test("manifest centrally inventories 33 scripts including three authored baseline-absent MJS paths", () => {
+test("manifest centrally inventories 32 scripts including three authored baseline-absent MJS paths", () => {
   const manifest = /** @type {{ scripts: { path: string, family: string, legacyOrigin: string, usage: string, behavior: string }[], forbiddenDetectorReferences: { records: { literal: string, allowedLocations: { file: string, jsonPath: string }[] }[] }, versionUpdateDetectorAbsentCorrection: { detectorRestored: boolean, legacyFiles: { legacyPath: string, sha256: string, gitMode: string, finalPath: string }[], restoreOrder: string[] } }} */ (JSON.parse(readFileSync(manifestPath, "utf8")));
-  expect(manifest.scripts).toHaveLength(33);
-  expect(new Set(manifest.scripts.map((row) => row.path)).size).toBe(33);
+  expect(manifest.scripts).toHaveLength(32);
+  expect(new Set(manifest.scripts.map((row) => row.path)).size).toBe(32);
   expect(manifest.scripts.every((row) => [row.path, row.family, row.legacyOrigin, row.usage, row.behavior].every(Boolean))).toBe(true);
   expect(Object.fromEntries(["former-sh", "former-py", "retained-mjs", "authored-mjs"].map((origin) => [
     origin,
     manifest.scripts.filter((row) => row.legacyOrigin === origin).length,
-  ]))).toEqual({ "former-sh": 20, "former-py": 1, "retained-mjs": 9, "authored-mjs": 3 });
+  ]))).toEqual({ "former-sh": 19, "former-py": 1, "retained-mjs": 9, "authored-mjs": 3 });
   const authored = [
     "skills/hermes-agent-maker/scripts/generate.mjs",
     "skills/hermes-agent-maker/scripts/validate-hermes-agent-maker.mjs",
@@ -152,17 +151,17 @@ function materializeFixture(files, cwd) {
   }
 }
 
-test("behavior contracts execute all 99 isolated semantic fixtures with exact observables", () => {
+test("behavior contracts execute all 96 isolated semantic fixtures with exact observables", () => {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const contracts = JSON.parse(readFileSync(contractsPath, "utf8"));
   const dimensions = ["stdout", "stderr", "exit", "files", "modes", "cwd", "env", "argv"];
   expect(contracts.requiredBy).toBe(relative(root, manifestPath));
   expect(manifest.legacyPreimageBase).toBe(legacyPreimageBase);
   expect(contracts.legacyPreimageBase).toBe(legacyPreimageBase);
-  expect(contracts.coverage.expectedRows).toBe(33);
-  expect(contracts.coverage.expectedFixtures).toBe(99);
-  expect(contracts.coverage.legacyOriginCounts).toEqual({ "former-sh": 20, "former-py": 1, "retained-mjs": 9, "authored-mjs": 3 });
-  expect(contracts.rows).toHaveLength(33);
+  expect(contracts.coverage.expectedRows).toBe(32);
+  expect(contracts.coverage.expectedFixtures).toBe(96);
+  expect(contracts.coverage.legacyOriginCounts).toEqual({ "former-sh": 19, "former-py": 1, "retained-mjs": 9, "authored-mjs": 3 });
+  expect(contracts.rows).toHaveLength(32);
   let cases = 0;
   for (const row of contracts.rows) {
     const manifestRow = manifest.scripts.find((candidate) => candidate.path === row.path);
@@ -215,7 +214,7 @@ test("behavior contracts execute all 99 isolated semantic fixtures with exact ob
       expect(createHash("sha256").update(source.stdout).digest("hex")).toBe(row.sourcePreimage.sha256);
     }
   }
-  expect(cases).toBe(99);
+  expect(cases).toBe(96);
 }, 30_000);
 
 test("Hermes renders deterministic previews for all seven artifact kinds and keeps routing cases mandatory", () => {
@@ -513,7 +512,7 @@ test("validator accepts the approved inventory", () => {
   const result = run([process.execPath, validatorPath], root);
   expect(result.stderr).toBe("");
   expect(result.exitCode).toBe(0);
-  expect(result.stdout).toContain("Validated 33 Bun MJS skill scripts (20 former-sh, 1 former-py, 9 retained-mjs, 3 authored-mjs baseline-absence).");
+  expect(result.stdout).toContain("Validated 32 Bun MJS skill scripts (19 former-sh, 1 former-py, 9 retained-mjs, 3 authored-mjs baseline-absence).");
 });
 test("validator rejects AST-visible static policy and declaration mutations", () => {
   const fixture = mkdtempSync(join(tmpdir(), "hypercore-validator-mutation-"));
@@ -620,30 +619,6 @@ test("version-apply restores replaced files when a later temporary write fails",
 });
 
 
-test("dashboard validation leaves no partial output for malformed results", () => {
-  const fixture = mkdtempSync(join(tmpdir(), "hypercore-dashboard-"));
-  writeFileSync(join(fixture, "results.json"), "{\"status\":\"complete\"}\n");
-  try {
-    const result = run([process.execPath, dashboardPath, fixture], fixture);
-    expect(result.exitCode).toBe(1);
-    expect(readdirSync(fixture).sort()).toEqual(["results.json"]);
-  } finally {
-    rmSync(fixture, { recursive: true, force: true });
-  }
-});
-
-test("dashboard produces both artifacts from a valid isolated result", () => {
-  const fixture = mkdtempSync(join(tmpdir(), "hypercore-dashboard-"));
-  writeFileSync(join(fixture, "results.json"), JSON.stringify({ status: "running", codebase_name: "fixture", current_experiment: 0, baseline_score: 1, best_score: 1, experiments: [] }));
-  try {
-    const result = run([process.execPath, dashboardPath, fixture], fixture);
-    expect(result.exitCode).toBe(0);
-    expect(readdirSync(fixture).sort()).toEqual(["dashboard.html", "results.js", "results.json"]);
-  } finally {
-    rmSync(fixture, { recursive: true, force: true });
-  }
-});
-
 test("autoresearch skill contract eval corpus is valid and covers fail-closed recovery", () => {
   const evalPath = join(root, "skills/autoresearch-skill/assets/evals/autoresearch-skill-cases.jsonl");
   const evals = readFileSync(evalPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
@@ -688,6 +663,64 @@ test("autoresearch skill contract eval corpus is valid and covers fail-closed re
   ]) expect(pattern.test(contract)).toBe(true);
 });
 
+/** @param {"bug-fix" | "deploy-fix"} skill */
+function readRepairSkillEvals(skill) {
+  const evalPath = join(root, `skills/${skill}/assets/evals/${skill}-cases.jsonl`);
+  const lines = readFileSync(evalPath, "utf8").trim().split("\n");
+  const rows = lines.map((line, index) => {
+    let row;
+    try { row = JSON.parse(line); } catch { throw new Error(`${skill} eval line ${index + 1} is malformed JSON`); }
+    if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error(`${skill} eval line ${index + 1} must be an object`);
+    return row;
+  });
+  const ids = new Set();
+  for (const row of rows) {
+    if (typeof row.id !== "string" || ids.has(row.id)) throw new Error(`${skill} eval id is missing or duplicated`);
+    ids.add(row.id);
+    if (typeof row.prompt !== "string" || row.prompt.length === 0) throw new Error(`${skill} eval prompt is missing`);
+    if (!row.context || !Array.isArray(row.context.files) || !Array.isArray(row.context.sources)) throw new Error(`${skill} eval context is invalid`);
+    if (!row.expected || !Array.isArray(row.expected.must) || row.expected.must.length === 0 || !Array.isArray(row.expected.mustNot) || row.expected.mustNot.length === 0) throw new Error(`${skill} eval expectations are invalid`);
+    if (!Array.isArray(row.metrics) || row.metrics.length === 0) throw new Error(`${skill} eval metrics are missing`);
+  }
+  return rows;
+}
+
+test("bug-fix and deploy-fix eval corpora cover trigger, trajectory, safety, and recovery regressions", () => {
+  for (const skill of ["bug-fix", "deploy-fix"]) {
+    const evals = readRepairSkillEvals(skill);
+    const categories = new Set(evals.map((row) => row.category));
+    const languages = new Set(evals.map((row) => row.language));
+    const invocationModes = new Set(evals.map((row) => row.invocationMode));
+    for (const category of ["positive", "negative", "boundary", "workflow", "source", "safety", "adversarial", "regression"]) expect(categories.has(category)).toBe(true);
+    for (const language of ["en", "ko", "mixed"]) expect(languages.has(language)).toBe(true);
+    for (const mode of ["explicit", "implicit", "contextual", "negative-control"]) expect(invocationModes.has(mode)).toBe(true);
+    expect(evals.filter((row) => row.category === "positive")).toHaveLength(3);
+    expect(evals.filter((row) => row.category === "negative")).toHaveLength(2);
+    expect(evals.some((row) => row.shouldTrigger === true)).toBe(true);
+    expect(evals.some((row) => row.shouldTrigger === false)).toBe(true);
+  }
+
+  const bugContract = [
+    "skills/bug-fix/SKILL.md",
+    "skills/bug-fix/SKILL.ko.md",
+    "skills/bug-fix/rules/diagnosis-and-routing.md",
+    "skills/bug-fix/rules/diagnosis-and-routing.ko.md",
+    "skills/bug-fix/rules/validation-and-reporting.md",
+    "skills/bug-fix/rules/validation-and-reporting.ko.md",
+  ].map((file) => readFileSync(join(root, file), "utf8")).join("\n");
+  for (const pattern of [/evidence only|근거일 뿐/u, /three materially different|서로 다른 접근 3개/u, /last known-good/u, /production action|production side effect/u]) expect(pattern.test(bugContract)).toBe(true);
+
+  const deployContract = [
+    "skills/deploy-fix/SKILL.md",
+    "skills/deploy-fix/SKILL.ko.md",
+    "skills/deploy-fix/rules/diagnosis-resume-and-safety.md",
+    "skills/deploy-fix/rules/diagnosis-resume-and-safety.ko.md",
+    "skills/deploy-fix/references/flow-schema.md",
+    "skills/deploy-fix/references/flow-schema.ko.md",
+  ].map((file) => readFileSync(join(root, file), "utf8")).join("\n");
+  for (const pattern of [/evidence only|근거일 뿐/u, /non-resumable/u, /authorized_target/u, /rollback_or_stop/u, /three materially different|실질적으로 다른 실패 접근/u]) expect(pattern.test(deployContract)).toBe(true);
+});
+
 test("autoresearch dashboard accepts typed non-happy outcomes", () => {
   const statuses = ["tie", "inconclusive", "candidate-crash", "infra-flake", "timeout", "signaled", "guard-failed", "guard-error", "cleanup-error", "rollback-error"];
   const fixture = mkdtempSync(join(tmpdir(), "hypercore-autoresearch-typed-status-"));
@@ -711,12 +744,6 @@ test("autoresearch dashboard accepts typed non-happy outcomes", () => {
   }
 });
 for (const renderer of [
-  {
-    name: "autoresearch-code",
-    scriptPath: dashboardPath,
-    templatePath: join(root, "skills/autoresearch-code/assets/dashboard-template.html"),
-    results: { status: "running", codebase_name: "fixture", current_experiment: 0, baseline_score: 1, best_score: 1, experiments: [] },
-  },
   {
     name: "autoresearch-skill",
     scriptPath: join(root, "skills/autoresearch-skill/scripts/render-dashboard.mjs"),

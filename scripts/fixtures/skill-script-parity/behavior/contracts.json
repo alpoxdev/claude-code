@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "requiredBy": "scripts/fixtures/skill-script-parity/manifest.json",
   "coverage": {
-    "expectedRows": 33,
+    "expectedRows": 32,
     "legacyOriginCounts": {
-      "former-sh": 20,
+      "former-sh": 19,
       "former-py": 1,
       "retained-mjs": 9,
       "authored-mjs": 3
@@ -24,182 +24,9 @@
       "malformed",
       "familyEdge"
     ],
-    "expectedFixtures": 99
+    "expectedFixtures": 96
   },
   "rows": [
-    {
-      "id": "autoresearch-code--render-dashboard",
-      "path": "skills/autoresearch-code/scripts/render-dashboard.mjs",
-      "family": "autoresearch-code",
-      "legacyOrigin": "former-sh",
-      "sourcePreimage": {
-        "path": "skills/autoresearch-code/scripts/render-dashboard.sh",
-        "sha256": "3eb6943db2dc7b484074278190e9521017dd83cbb6d00016bf062c3aa3354c93",
-        "gitMode": "100755"
-      },
-      "fixtures": {
-        "happy": {
-          "scenario": "happy",
-          "command": {
-            "executable": "bun",
-            "arguments": [
-              "skills/autoresearch-code/scripts/render-dashboard.mjs"
-            ]
-          },
-          "input": {
-            "cwd": "isolated-temp-tree",
-            "env": {
-              "NO_COLOR": "1"
-            },
-            "argv": [
-              "artifact"
-            ],
-            "files": [
-              {
-                "path": "artifact/results.json",
-                "text": "{\"status\":\"complete\",\"current_experiment\":null,\"baseline_score\":1,\"best_score\":1,\"experiments\":[],\"codebase_name\":\"fixture\"}\n"
-              }
-            ]
-          },
-          "expected": {
-            "stdout": {
-              "equals": ""
-            },
-            "stderr": {
-              "equals": "완료 상태에는 results.json.code_explanation 또는 code-explanation.md가 필요합니다\n"
-            },
-            "exit": 1,
-            "files": [
-              {
-                "path": "artifact/results.json",
-                "bytes": 125,
-                "sha256": "a1dd348610ab987348051dc5e3a003d27a8f46916b25fe02a664a83e7b9a211d"
-              }
-            ],
-            "modes": {
-              "artifact/results.json": "644"
-            },
-            "cwd": "isolated-temp-tree",
-            "env": {
-              "NO_COLOR": "1"
-            },
-            "argv": [
-              "artifact"
-            ]
-          }
-        },
-        "malformed": {
-          "scenario": "malformed",
-          "command": {
-            "executable": "bun",
-            "arguments": [
-              "skills/autoresearch-code/scripts/render-dashboard.mjs"
-            ]
-          },
-          "input": {
-            "cwd": "isolated-temp-tree",
-            "env": {
-              "NO_COLOR": "1"
-            },
-            "argv": [
-              "artifact"
-            ],
-            "files": [
-              {
-                "path": "artifact/results.json",
-                "text": "{broken"
-              }
-            ]
-          },
-          "expected": {
-            "stdout": {
-              "equals": ""
-            },
-            "stderr": {
-              "equals": "results.json JSON 파싱에 실패했습니다: JSON Parse error: Expected '}'\n"
-            },
-            "exit": 1,
-            "files": [
-              {
-                "path": "artifact/results.json",
-                "bytes": 7,
-                "sha256": "be302461cda285db3ed2d45fb767b23e08ca8808b35a638009937df22b332d73"
-              }
-            ],
-            "modes": {
-              "artifact/results.json": "644"
-            },
-            "cwd": "isolated-temp-tree",
-            "env": {
-              "NO_COLOR": "1"
-            },
-            "argv": [
-              "artifact"
-            ]
-          }
-        },
-        "familyEdge": {
-          "scenario": "familyEdge",
-          "command": {
-            "executable": "bun",
-            "arguments": [
-              "skills/autoresearch-code/scripts/render-dashboard.mjs"
-            ]
-          },
-          "input": {
-            "cwd": "isolated-temp-tree",
-            "env": {
-              "NO_COLOR": "1"
-            },
-            "argv": [
-              "artifact"
-            ],
-            "files": [
-              {
-                "path": "artifact/results.json",
-                "text": "{\"status\":\"wat\"}\n"
-              }
-            ]
-          },
-          "expected": {
-            "stdout": {
-              "equals": ""
-            },
-            "stderr": {
-              "equals": "results.json 필수 키가 없습니다: baseline_score, best_score, current_experiment, experiments\n"
-            },
-            "exit": 1,
-            "files": [
-              {
-                "path": "artifact/results.json",
-                "bytes": 17,
-                "sha256": "7e367f3a3b520e56a626b10e611acfb8fef780740fa7469eec1c16cc34cbc092"
-              }
-            ],
-            "modes": {
-              "artifact/results.json": "644"
-            },
-            "cwd": "isolated-temp-tree",
-            "env": {
-              "NO_COLOR": "1"
-            },
-            "argv": [
-              "artifact"
-            ]
-          }
-        }
-      },
-      "dimensions": {
-        "stdout": "autoresearch-code--render-dashboard--stdout",
-        "stderr": "autoresearch-code--render-dashboard--stderr",
-        "exit": "autoresearch-code--render-dashboard--exit",
-        "files": "autoresearch-code--render-dashboard--files",
-        "modes": "autoresearch-code--render-dashboard--modes",
-        "cwd": "autoresearch-code--render-dashboard--cwd",
-        "env": "autoresearch-code--render-dashboard--env",
-        "argv": "autoresearch-code--render-dashboard--argv"
-      }
-    },
     {
       "id": "autoresearch-skill--render-dashboard",
       "path": "skills/autoresearch-skill/scripts/render-dashboard.mjs",
@@ -3731,7 +3558,7 @@
               "equals": "==========================================\n  Pre-Deploy Build Phase\n==========================================\n\n=== [node] Build ===\n"
             },
             "stderr": {
-              "equals": "Error: Unable to read or parse package.json: JSON Parse error: Expected '}'\n1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n\n1 | {bad\n       ^\nerror: Expected \" =\" but found end of file\n    at <cwd>/package.json:<line>:<column>\n"
+              "equals": "Error: Unable to read or parse package.json: JSON Parse error: Expected '}'\n1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n"
             },
             "exit": 1,
             "files": [
@@ -4026,7 +3853,7 @@
               "equals": "==========================================\n  Pre-Deploy Quality Checks\n==========================================\n\n==========================================\n  ✗ Quality checks failed\n==========================================\n"
             },
             "stderr": {
-              "equals": "Error: Unable to read or parse package.json: JSON Parse error: Expected '}'\n1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n\n1 | {bad\n       ^\nerror: Expected \" =\" but found end of file\n    at <cwd>/package.json:<line>:<column>\n"
+              "equals": "Error: Unable to read or parse package.json: JSON Parse error: Expected '}'\n1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n"
             },
             "exit": 1,
             "files": [
@@ -4187,7 +4014,7 @@
               "equals": "npm\n"
             },
             "stderr": {
-              "equals": "Warning: No lock file found, defaulting to npm\n1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n\n1 | {bad\n       ^\nerror: Expected \" =\" but found end of file\n    at <cwd>/package.json:<line>:<column>\n"
+              "equals": "Warning: No lock file found, defaulting to npm\n1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n"
             },
             "exit": 0,
             "files": [
@@ -4348,7 +4175,7 @@
               "equals": "node\n"
             },
             "stderr": {
-              "equals": "1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n\n1 | {bad\n       ^\nerror: Expected \" =\" but found end of file\n    at <cwd>/package.json:<line>:<column>\n"
+              "equals": "1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n"
             },
             "exit": 0,
             "files": [
@@ -7605,7 +7432,7 @@
               "equals": ""
             },
             "stderr": {
-              "equals": "Error: Could not parse semantic version (x.y.z) from package.json\n1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n\n1 | {bad\n       ^\nerror: Expected \" =\" but found end of file\n    at <cwd>/package.json:<line>:<column>\n"
+              "equals": "Error: Could not parse semantic version (x.y.z) from package.json\n1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n"
             },
             "exit": 1,
             "files": [
@@ -7766,7 +7593,7 @@
               "equals": "=== Searching version files ===\n\n=== Node version files ===\npackage.json\n\n=== Rust version files ===\n(none found)\n\n=== Python version files ===\n(none found)\n\n=== Code files with inline version patterns ===\n(none found)\n\n=== All version files ===\npackage.json\n"
             },
             "stderr": {
-              "equals": "1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n\n1 | {bad\n       ^\nerror: Expected \" =\" but found end of file\n    at <cwd>/package.json:<line>:<column>\n"
+              "equals": "1 | {bad\n     ^\nerror: Expected string but found \"bad\"\n    at <cwd>/package.json:<line>:<column>\n"
             },
             "exit": 0,
             "files": [
