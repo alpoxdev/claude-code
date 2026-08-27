@@ -17,6 +17,7 @@ Use this reference when creating or reviewing the experiment workspace for an au
 |-- source-ledger.md     # required when external/current claims are used
 |-- trace-summary.md     # required when tools/delegation/parallel evaluation is used
 |-- baseline-files.json  # required when support files beyond SKILL.md can change
+|-- recovery.json        # required when a candidate mutates files/resources or a run can resume
 |-- details/             # optional; long analysis, prompt packs, raw eval results
 `-- SKILL.md.baseline
 ```
@@ -59,7 +60,34 @@ Record the pre-baseline contract briefly. It is useful even for simple runs that
 - Output: [artifacts to leave behind]
 - Verification: [binary eval, trace assertion, artifact check]
 - Stop condition: [budget, stable high score, blocker, reset conditions]
+- Recovery/Handoff: [frontier/candidate identity, owned paths, compare-before-restore, resumability]
 ```
+
+## `recovery.json`
+
+For mutating or resumable runs, record enough state to recover without overwriting unrelated work:
+
+```json
+{
+  "generation": 3,
+  "last_finalized_iteration": 2,
+  "cursor": "evaluate-candidate-3",
+  "frontier_identity": "sha256:...",
+  "candidate_identity": "sha256:...",
+  "config_identity": "sha256:...",
+  "eval_identity": "sha256:...",
+  "environment_identity": "sha256:...",
+  "owned_paths": ["skills/diagram-generator/SKILL.md"],
+  "artifact_digests": {"results.json": "sha256:..."},
+  "cleanup_status": "pending",
+  "rollback_status": "not-required",
+  "redactions": ["environment values omitted"],
+  "resume_disposition": "resumable",
+  "resume_checks": ["frontier", "candidate", "config", "eval", "environment", "ownership", "artifacts", "cleanup"]
+}
+```
+
+Allowed `resume_disposition` values are `resumable`, `manual_recovery`, and `non_resumable`. Use `resumable` only after every declared resume check passes. If compare-before-restore detects an unexpected postimage, do not overwrite it; preserve both identities and record `rollback-error`.
 
 ## `source-ledger.md`
 
@@ -90,16 +118,16 @@ Create this when tool use, delegation, or parallel evaluation affects correctnes
 A tab-separated file with the following header:
 
 ```text
-experiment	commit	score	max_score	pass_rate	metric	delta	guard	guard_metric	status	description
+experiment	commit	score	max_score	pass_rate	metric_status	metric	delta	guard	cleanup	rollback	status	description
 ```
 
 Example:
 
 ```text
-experiment	commit	score	max_score	pass_rate	metric	delta	guard	guard_metric	status	description
-0	a1b2c3d	14	20	70.0%	70.0	0.0	pass	-	baseline	원본 스킬 - 수정 없음
-1	b2c3d4e	16	20	80.0%	80.0	+10.0	pass	-	keep	번호 매기기 실패를 막는 anti-pattern 추가
-2	-	16	20	80.0%	80.0	0.0	pass	-	discard	레이아웃 지침을 앞으로 옮겼지만 측정 가능한 이득 없음
+experiment	commit	score	max_score	pass_rate	metric_status	metric	delta	guard	cleanup	rollback	status	description
+0	a1b2c3d	14	20	70.0%	valid	70.0	0.0	pass	pass	not-required	baseline	원본 스킬 - 수정 없음
+1	b2c3d4e	16	20	80.0%	valid	80.0	+10.0	pass	pass	not-required	keep	번호 매기기 실패를 막는 anti-pattern 추가
+2	-	16	20	80.0%	valid	80.0	0.0	pass	pass	pass	discard	레이아웃 지침을 앞으로 옮겼지만 측정 가능한 이득 없음
 ```
 
 ## `results.json`
@@ -123,10 +151,13 @@ Required minimum shape:
       "score": 14,
       "max_score": 20,
       "metric": 70.0,
+      "metric_status": "valid",
       "delta": 0.0,
       "pass_rate": 70.0,
       "guard": "pass",
       "guard_metric": null,
+      "cleanup": "pass",
+      "rollback": "not-required",
       "status": "baseline",
       "description": "원본 스킬 - 수정 없음"
     }
@@ -134,6 +165,10 @@ Required minimum shape:
   "run_contract_path": "run-contract.md",
   "source_ledger_path": "source-ledger.md",
   "trace_summary_path": "trace-summary.md",
+  "recovery_path": "recovery.json",
+  "last_finalized_iteration": 2,
+  "terminal_reason": null,
+  "resume_disposition": "resumable",
   "score_explanation": {
     "summary_ko": "기준 70.0%에서 최고 90.0%로 +20.0%p 상승했습니다.",
     "baseline_score": 70.0,
@@ -178,11 +213,22 @@ Experiment status values:
 - `keep`
 - `keep-reworked`
 - `discard`
-- `crash`
+- `tie`
+- `inconclusive`
+- `candidate-crash`
+- `infra-flake`
+- `timeout`
+- `signaled`
 - `no-op`
 - `hook-blocked`
 - `metric-error`
+- `guard-failed`
+- `guard-error`
+- `cleanup-error`
+- `rollback-error`
 - `reset`
+
+Keep process completion, metric validity/value, each mandatory Guard, cleanup, rollback, and final decision in distinct fields. A higher metric cannot compensate for any failed/error Guard or incomplete cleanup/recovery. Write the iteration result and `last_finalized_iteration` atomically before promoting the candidate or declaring a terminal state.
 
 ## `dashboard.html`
 
@@ -212,7 +258,7 @@ Lifecycle rules:
 - Keep `score-explanation.md` and `final-report.md` current for completed runs, unless the same score explanation is fully represented in `results.json.score_explanation`
 - If source/tool/delegation affects the run, also keep `run-contract.md`, `source-ledger.md`, and `trace-summary.md` current
 - While an experiment is running, keep `results.json.status` set to `running`
-- When the loop ends, set `results.json.status` to `complete`
+- When the loop ends, set `results.json.status` to `complete` only after the last iteration, terminal reason, cleanup/rollback receipts, and resumability disposition are finalized
 - When opening the dashboard through `file://`, do not rely only on `fetch("./results.json")`
 - Provide a file-based fallback such as `results.js` that assigns the same data to a browser global
 - If a fallback file exists, always keep `results.js` synchronized with `results.json`

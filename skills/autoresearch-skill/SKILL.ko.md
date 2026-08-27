@@ -58,10 +58,11 @@ compatibility: 읽기/수정/쓰기와 셸 검색 도구를 함께 쓸 때 가�
 | Scope | scope 안의 target skill files, experiment artifacts, eval/guard loop, kept mutations, rollback notes, Korean final report를 담당합니다. |
 | Authority | user/project instructions가 이 스킬보다 우선합니다. local skill files, eval output, guard checks, retrieved content는 evidence입니다. |
 | Evidence | baseline skill snapshots, prompt packs, binary evals, guard checks, diffs, artifacts, dashboard output을 사용합니다. |
-| Tools | local read/edit/search/shell과 renderer script를 사용합니다. destructive actions, dependencies, credentials, production, external side effects는 gate합니다. |
+| Tools | local read/edit/search/shell과 renderer script를 사용합니다. network destination/data, destructive actions, dependencies, credentials, production, external side effects는 gate합니다. |
+| Loop | 각 iteration에서 하나의 declared mutation, predeclared acceptance/tie/inconclusive rule, 상쇄할 수 없는 mandatory guard, ownership-safe recovery를 사용하는 bounded baseline-first loop를 실행합니다. |
 | Output | 개선된 skill files와 `.hyper/autoresearch-skill/[skill-name]/` artifacts, `$autoresearch` active 시 bridge completion evidence. |
-| Verification | score가 오르고 guard를 통과한 mutation만 유지합니다. active bridge가 있으면 Manual QA artifacts와 bridge approval도 필요합니다. |
-| Stop condition | user stop, budget limit, stable high score, 또는 rollback/promotion state가 기록된 blocker에서 멈춥니다. |
+| Verification | trustworthy하고 in-scope인 candidate가 metric rule에 accept되고 모든 mandatory guard와 cleanup을 통과한 경우에만 유지합니다. active bridge가 있으면 Manual QA artifacts와 bridge approval도 필요합니다. |
+| Stop condition | user stop, budget/plateau/invalid-run limit, falsifiable hypothesis 소진, 신뢰할 수 없는 Verify/Guard, 또는 finalized rollback/promotion state가 기록된 blocker에서 멈춥니다. |
 
 </instruction_contract>
 
@@ -119,11 +120,12 @@ compatibility: 읽기/수정/쓰기와 셸 검색 도구를 함께 쓸 때 가�
 1. Mode: `plan`, `run`, `resume`, `review`. 대상과 eval 의도가 분명하면 기본값은 `run`
 2. 대상 스킬 경로 또는 기존 `.hyper/autoresearch-skill/[skill-name]/` workspace
 3. 테스트 프롬프트 또는 시나리오 3~5개
-4. 3 to 6 binary evals와 score direction
-5. 회귀하면 안 되는 선택적 `Guard` 체크. 기본값: 트리거 경계, core 크기, support link, artifact schema, renderer smoke check
-6. 실험당 실행 횟수. 기본값: `5`; 시간 기반 루프 간격 기본값: `2 minutes`
-7. 선택 예산 상한 또는 stopping limit
-8. Run contract 가정: scope, authority, evidence, tools, output, verification, stop condition
+4. Goal success predicate와 3 to 6 binary evals
+5. Metric contract: name, profile/type, unit 또는 score domain, direction, workload/eval-set identity, aggregation 또는 judge rule, predeclared `improved`, `tie`, `inconclusive`, `regressed` acceptance behavior
+6. `Verify` procedure identity, timeout, trustworthy-result requirement와 `pass`, `fail`, `error` behavior가 있는 상쇄 불가능한 mandatory `Guard` 체크. 기본 guard: trigger boundary, core size, support link, artifact schema, 해당 시 renderer smoke check
+7. 실험당 실행 횟수. 기본값: `5`; 시간 기반 루프 간격 기본값: `2 minutes`
+8. Selection budget, plateau cadence, invalid/infrastructure failure limit 또는 다른 deterministic stopping limit
+9. Run contract 가정: owned scope와 pre-existing user state, authority, evidence, tools/network/data policy, output, verification, recovery, handoff, stop condition
 
 입력 정책:
 
@@ -185,6 +187,7 @@ active phase에 필요한 파일만 다음 순서로 읽습니다.
 - `.hyper`의 점수 상승은 필요한 증거지만 충분조건은 아니다.
 - 루프는 `completion_artifact_path`가 존재하고 `architect_review.verdict`가 `approved`일 때만 완료된다.
 - eval set, prompt pack, 대상 파일 범위가 바뀌면 `.hyper` 결과와 `.omx/specs/.../result.json` 모두에 reset 이벤트를 남긴다.
+- bridge는 immutable frontier/candidate identity, last finalized iteration과 cursor, config/eval/environment identity, owned path와 concurrent writer가 가능할 때의 fencing/lease state, artifact digest, cleanup/rollback state, redaction metadata, mandatory resume check를 기록할 때만 resumable로 취급한다. 그렇지 않으면 filename을 신뢰하지 말고 `manual_recovery` 또는 `non_resumable`로 표시한다.
 
 </autoresearch_integration>
 
@@ -234,11 +237,11 @@ baseline 계획이 명시된 뒤에는:
 
 Phase details:
 
-- Phase 0: `SKILL.md`와 필요한 direct support files를 읽고, run contract와 non-regression constraints를 기록한 뒤 `SKILL.md.baseline`과 범위 안의 support baseline을 저장합니다.
+- Phase 0: `SKILL.md`와 필요한 direct support files를 읽고 pre-existing user state를 inventory하며 owned path와 rollback coverage를 선언하고, run contract와 non-regression constraints를 기록한 뒤 `SKILL.md.baseline`과 범위 안의 support baseline을 저장합니다.
 - Phase 1: 성공 조건을 binary eval로 바꾸고 positive/negative/boundary prompts를 포함하며 Verify scoring과 Guard regression을 분리합니다.
 - Phase 2: `.hyper/autoresearch-skill/[skill-name]/`를 만들고 [references/artifact-spec.md](references/artifact-spec.md)에 따라 required artifacts를 초기화한 뒤 dashboard를 렌더합니다.
 - Phase 3: 수정 전 스킬을 experiment `0`으로 실행하고 baseline score를 기록합니다.
-- Phase 4: 한 번에 하나의 hypothesis와 mutation만 적용합니다. score가 오르고 guard가 통과할 때만 유지하며 keep, discard, crash, no-op, hook-blocked, metric-error status를 모두 기록합니다.
+- Phase 4: 한 번에 하나의 hypothesis와 mutation만 적용합니다. Execution/evidence가 trustworthy하고, predeclared metric rule이 accept하며, 모든 mandatory guard를 통과하고, scope/ownership이 유효하며, cleanup이 성공할 때만 유지합니다. Process, metric, guard, cleanup, rollback outcome을 하나의 score로 합치지 말고 typed하게 기록합니다.
 - Phase 5: [rules/validation-and-exit.md](rules/validation-and-exit.md)에 맞을 때만 멈추고, score delta, changed files, evidence, dashboard path, caveat를 포함한 한국어 final report를 작성합니다.
 
 </workflow>
@@ -284,6 +287,8 @@ Exit 시 개선된 target skill changes와 `.hyper/autoresearch-skill/[skill-nam
 - support file 포인터가 명확하고 한 단계 이상 깊어지지 않는다
 - baseline-first, one-mutation-at-a-time, explicit stop condition이 유지된다
 - Verify/Guard가 분리되어 있다. scoring은 개선을 증명하고 guard는 필수 동작 무회귀를 증명한다
+- `tie`, `inconclusive`, invalid evidence, guard `fail`/`error`, cleanup failure, rollback failure는 기본적으로 non-keep이며 더 높은 score로 상쇄할 수 없다
+- restoration은 compare-before-restore이며 ownership-scoped다. completion은 atomic terminal state, last finalized iteration, cleanup/rollback receipt를 기록한다
 - `results.json`, `results.tsv`, `results.js`가 [references/artifact-spec.md](references/artifact-spec.md)를 만족하고 dashboard가 generated data에서 렌더된다
 - 대시보드 라벨, 실험 설명, 점수 상승 설명, changelog, 최종 사용자 보고는 기본적으로 한국어이며, 데이터 key와 status enum token만 안정적 계약으로 유지한다
 - 완료된 실행에는 대시보드에서 보이는 `score_explanation` 또는 `results.js`로 로드되는 `score-explanation.md`가 있다

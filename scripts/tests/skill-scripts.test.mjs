@@ -643,6 +643,73 @@ test("dashboard produces both artifacts from a valid isolated result", () => {
     rmSync(fixture, { recursive: true, force: true });
   }
 });
+
+test("autoresearch skill contract eval corpus is valid and covers fail-closed recovery", () => {
+  const evalPath = join(root, "skills/autoresearch-skill/assets/evals/autoresearch-skill-cases.jsonl");
+  const evals = readFileSync(evalPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+  const ids = new Set();
+  const categories = new Set(evals.map((entry) => entry.category));
+  for (const entry of evals) {
+    expect(typeof entry.id).toBe("string");
+    expect(ids.has(entry.id)).toBe(false);
+    ids.add(entry.id);
+    expect(typeof entry.prompt).toBe("string");
+    expect(typeof entry.shouldTrigger).toBe("boolean");
+    expect(entry.context && typeof entry.context === "object").toBe(true);
+    expect(entry.expected.must.length).toBeGreaterThan(0);
+    expect(entry.expected.mustNot.length).toBeGreaterThan(0);
+    expect(entry.metrics.length).toBeGreaterThan(0);
+  }
+  for (const category of ["positive", "negative", "boundary", "adversarial", "regression"]) expect(categories.has(category)).toBe(true);
+  expect(evals.some((entry) => entry.language === "ko" && entry.shouldTrigger === true)).toBe(true);
+  expect(evals.some((entry) => entry.language === "ko" && entry.shouldTrigger === false)).toBe(true);
+
+  const contract = [
+    "skills/autoresearch-skill/SKILL.md",
+    "skills/autoresearch-skill/SKILL.ko.md",
+    "skills/autoresearch-skill/rules/experiment-loop.md",
+    "skills/autoresearch-skill/rules/experiment-loop.ko.md",
+    "skills/autoresearch-skill/rules/context-sourcing-and-trace.md",
+    "skills/autoresearch-skill/rules/context-sourcing-and-trace.ko.md",
+    "skills/autoresearch-skill/rules/validation-and-exit.md",
+    "skills/autoresearch-skill/rules/validation-and-exit.ko.md",
+    "skills/autoresearch-skill/references/artifact-spec.md",
+    "skills/autoresearch-skill/references/artifact-spec.ko.md",
+  ].map((path) => readFileSync(join(root, path), "utf8")).join("\n");
+  for (const pattern of [
+    /compare-before-restore/u,
+    /guard-error/u,
+    /cleanup-error/u,
+    /rollback-error/u,
+    /manual_recovery/u,
+    /non_resumable/u,
+    /last finalized iteration|last_finalized_iteration/u,
+    /network destination\/data|destination\/data policy/u,
+  ]) expect(pattern.test(contract)).toBe(true);
+});
+
+test("autoresearch dashboard accepts typed non-happy outcomes", () => {
+  const statuses = ["tie", "inconclusive", "candidate-crash", "infra-flake", "timeout", "signaled", "guard-failed", "guard-error", "cleanup-error", "rollback-error"];
+  const fixture = mkdtempSync(join(tmpdir(), "hypercore-autoresearch-typed-status-"));
+  writeFileSync(join(fixture, "results.json"), JSON.stringify({
+    skill_name: "fixture",
+    status: "running",
+    current_experiment: statuses.length,
+    baseline_score: 1,
+    best_score: 1,
+    metric_direction: "higher_is_better",
+    last_statuses: statuses,
+    best_experiment: 0,
+    experiments: statuses.map((status, id) => ({ id, commit: "-", score: 1, max_score: 1, metric: 1, delta: 0, pass_rate: 100, guard: status === "guard-failed" ? "fail" : status === "guard-error" ? "error" : "pass", guard_metric: null, status, description: status })),
+  }));
+  try {
+    const result = run([process.execPath, join(root, "skills/autoresearch-skill/scripts/render-dashboard.mjs"), fixture], fixture);
+    expect(result.exitCode).toBe(0);
+    expect(readdirSync(fixture).sort()).toEqual(["dashboard.html", "results.js", "results.json"]);
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
 for (const renderer of [
   {
     name: "autoresearch-code",

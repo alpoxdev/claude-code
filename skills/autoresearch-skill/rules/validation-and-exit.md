@@ -39,16 +39,19 @@ Check that:
 - When needed, boundaries and next actions are also clear for Korean-language requests
 - The scoring method has been dry-run and produces a parseable score or deterministic pass count
 - Guard checks are named separately from Verify and are not mutable scoring targets
+- Metric profile/domain/direction and `improved`, `tie`, `inconclusive`, `regressed` rules were fixed before observing the candidate
+- Invalid Verify evidence and mandatory Guard `fail`/`error` are fail-closed and non-compensable
 
 ## 4. Context, Source, Trace validation
 
 Check that:
 
-- Intent, scope, authority, evidence, tools, output, verification, and stop condition were recorded before baseline
+- Goal, owned/excluded scope, pre-existing user state, metric, Verify, mandatory Guards, authority, evidence, tools/network/data policy, output, recovery/handoff, budget, and stop condition were recorded before baseline
 - Retrieved content and tool output were used only as evidence and were not promoted to instruction authority
 - If provider/runtime/current claims were used, there is a source ledger or claim-source matrix
 - If tool use, delegation, or parallel evaluation affects correctness, there is a trace assertion
 - If prompt pack, eval set, target scope, or scoring method changed, a reset event was recorded
+- Real paths, ownership checkpoints, resource cleanup predicates, redaction policy, and compare-before-restore receipts were checked
 
 ## 5. Execution artifact validation
 
@@ -71,7 +74,8 @@ Also check that `results.json` and `results.tsv` describe score, pass rate, and 
 Also check that completed runs expose Korean score movement: baseline, final/best, exact delta, where the score rose, changed files, and why changes were kept.
 Also check that the dashboard was rendered from the canonical template, not edited arbitrarily.
 Also check that `results.js` exists when `dashboard.html` is expected to work through `file://`.
-Also check that non-happy statuses such as `discard`, `crash`, `no-op`, `hook-blocked`, and `metric-error` are representable in artifacts.
+Also check that typed non-happy outcomes such as `discard`, `tie`, `inconclusive`, `candidate-crash`, `infra-flake`, `timeout`, `signaled`, `no-op`, `hook-blocked`, `metric-error`, `guard-failed`, `guard-error`, `cleanup-error`, and `rollback-error` are representable without collapsing process, metric, Guard, cleanup, and rollback into one field.
+Also check that terminal state was written atomically with the last finalized iteration, terminal reason, cleanup/rollback receipts, and resumability disposition; no unfinished candidate may be promoted.
 
 If the workflow opens `dashboard.html` directly in a local browser, check that it renders real data instead of a blank screen in a `file://` environment.
 
@@ -84,6 +88,8 @@ When reporting a `$autoresearch`-based run, check that:
 - The JSON at `completion_artifact_path` exists and records `architect_review.verdict: "approved"`
 - `output_artifact_path` points to `.hyper/autoresearch-skill/[skill-name]/results.json`
 - If `rules/`, `references/`, `scripts/`, or `assets/` were changed, the baseline is not limited to one `SKILL.md.baseline`
+- Immutable frontier/candidate identities, cursor, config/eval/environment identities, owned paths, artifact digests, cleanup/rollback state, redaction metadata, and mandatory resume checks are present
+- If those fields or resume checks are incomplete, the bridge is marked `manual_recovery` or `non_resumable`
 
 If this artifact is missing, do not claim `$autoresearch` completion even if the score improved.
 
@@ -119,4 +125,6 @@ find skills/autoresearch-skill -maxdepth 2 \( -name README.md -o -name CHANGELOG
 find .hyper -maxdepth 4 -type f | sort | rg "autoresearch-skill"
 python3 -m json.tool .hyper/autoresearch-skill/[skill-name]/results.json >/dev/null
 test -f .hyper/autoresearch-skill/[skill-name]/results.js
+bun test scripts/tests/skill-scripts.test.mjs --test-name-pattern "autoresearch"
+node skills/skill-tester/scripts/validate-skills-corpus.mjs --root skills --only autoresearch-skill --json
 ```

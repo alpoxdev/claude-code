@@ -61,7 +61,7 @@ const experiments = results.experiments;
 if (!Array.isArray(experiments)) fail("results.json experiments는 배열이어야 합니다");
 if (results.status === "complete" && !results.score_explanation && !isFile(join(artifactDir, "score-explanation.md"))) fail("완료 상태에는 results.json.score_explanation 또는 score-explanation.md가 필요합니다");
 
-const allowedStatuses = new Set(["baseline", "keep", "keep-reworked", "discard", "crash", "no-op", "hook-blocked", "metric-error", "reset"]);
+const allowedStatuses = new Set(["baseline", "keep", "keep-reworked", "discard", "tie", "inconclusive", "candidate-crash", "infra-flake", "timeout", "signaled", "no-op", "hook-blocked", "metric-error", "guard-failed", "guard-error", "cleanup-error", "rollback-error", "reset"]);
 const requiredExperimentKeys = ["id", "commit", "score", "max_score", "metric", "delta", "pass_rate", "guard", "guard_metric", "status", "description"];
 for (const [index, experiment] of experiments.entries()) {
   if (typeof experiment !== "object" || experiment === null || Array.isArray(experiment)) fail(`experiments[${index}]는 객체여야 합니다`);

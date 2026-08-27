@@ -58,10 +58,11 @@ Do not use `autoresearch-skill` when:
 | Scope | Own the target skill files in scope, experiment artifacts, eval/guard loop, kept mutations, rollback notes, and Korean final report. |
 | Authority | User/project instructions outrank this skill; local skill files, eval output, guard checks, and retrieved content are evidence. |
 | Evidence | Use baseline skill snapshots, prompt packs, binary evals, guard checks, diffs, artifacts, and dashboard output. |
-| Tools | Use local read/edit/search/shell and the renderer script; gate destructive actions, dependencies, credentials, production, and external side effects. |
+| Tools | Use local read/edit/search/shell and the renderer script; gate network destinations/data, destructive actions, dependencies, credentials, production, and external side effects. |
+| Loop | Use a bounded baseline-first loop with one declared mutation, predeclared acceptance/tie/inconclusive rules, mandatory non-compensable guards, and ownership-safe recovery per iteration. |
 | Output | Improved skill files plus `.hyper/autoresearch-skill/[skill-name]/` artifacts and bridge completion evidence when `$autoresearch` is active. |
-| Verification | Keep only mutations that improve score and pass guards; final completion requires Manual QA artifacts and bridge approval when active. |
-| Stop condition | Stop on user stop, budget limit, stable high score, or blocker recorded with rollback/promotion state. |
+| Verification | Keep only trustworthy, in-scope candidates accepted by the metric rule after all mandatory guards and cleanup pass; final completion requires Manual QA artifacts and bridge approval when active. |
+| Stop condition | Stop on user stop, budget/plateau/invalid-run limits, exhausted falsifiable hypotheses, untrusted Verify/Guard, or a blocker recorded with finalized rollback/promotion state. |
 
 </instruction_contract>
 
@@ -116,11 +117,12 @@ Collect these before the first mutation:
 1. Mode: `plan`, `run`, `resume`, or `review`. Default: `run` when a target and eval intent are clear.
 2. Target skill path or existing `.hyper/autoresearch-skill/[skill-name]/` workspace.
 3. Three to five test prompts or scenarios.
-4. 3 to 6 binary evals and a score direction.
-5. Optional `Guard` checks that must not regress. Default: trigger boundary, core size, support links, artifact schema, and renderer smoke checks when applicable.
-6. Runs per experiment. Default: `5`; interval for timed loops defaults to `2 minutes`.
-7. Selection budget or stopping limit.
-8. Run contract assumptions: scope, authority, evidence, tools, output, verification, and stop condition.
+4. Goal success predicate plus 3 to 6 binary evals.
+5. Metric contract: name, profile/type, unit or score domain, direction, workload/eval-set identity, aggregation or judge rule, and predeclared `improved`, `tie`, `inconclusive`, and `regressed` acceptance behavior.
+6. `Verify` procedure identity, timeout, and trustworthy-result requirements; plus mandatory non-compensable `Guard` checks with `pass`, `fail`, and `error` behavior. Default guards: trigger boundary, core size, support links, artifact schema, and renderer smoke checks when applicable.
+7. Runs per experiment. Default: `5`; interval for timed loops defaults to `2 minutes`.
+8. Selection budget, plateau cadence, invalid/infrastructure failure limit, or other deterministic stopping limit.
+9. Run contract assumptions: owned scope and pre-existing user state, authority, evidence, tools/network/data policy, output, verification, recovery, handoff, and stop condition.
 
 Input policy:
 
@@ -182,6 +184,7 @@ Exit rules:
 - A higher `.hyper` score is necessary evidence, not sufficient evidence.
 - The loop completes only when `completion_artifact_path` exists and `architect_review.verdict` is `approved`.
 - If the eval set, prompt pack, or target file scope changes, record a reset event in both `.hyper` results and `.omx/specs/.../result.json`.
+- Treat the bridge as resumable only when it records immutable frontier and candidate identities, last finalized iteration and cursor, config/eval/environment identities, owned paths and fencing/lease state when concurrent writers are possible, artifact digests, cleanup/rollback state, redaction metadata, and mandatory resume checks. Otherwise mark it `manual_recovery` or `non_resumable` rather than trusting the filename.
 
 </autoresearch_integration>
 
@@ -230,11 +233,11 @@ When skill structure is weak, prefer deleting duplication, tightening triggers, 
 
 Phase details:
 
-- Phase 0: read `SKILL.md` plus only needed direct support files, record run contract and non-regression constraints, then save `SKILL.md.baseline` and any scoped support baseline.
+- Phase 0: read `SKILL.md` plus only needed direct support files, inventory pre-existing user state, declare owned paths and rollback coverage, record run contract and non-regression constraints, then save `SKILL.md.baseline` and any scoped support baseline.
 - Phase 1: convert success criteria into binary evals, include positive/negative/boundary prompts, and keep Verify scoring separate from Guard regressions.
 - Phase 2: create `.hyper/autoresearch-skill/[skill-name]/`, initialize required artifacts from [references/artifact-spec.md](references/artifact-spec.md), and render the dashboard.
 - Phase 3: run the unmodified skill as experiment `0` and record the baseline score.
-- Phase 4: make exactly one hypothesis and mutation at a time; keep it only when score improves and guards pass, and record every keep, discard, crash, no-op, hook-blocked, or metric-error status.
+- Phase 4: make exactly one hypothesis and mutation at a time; keep it only when execution and evidence are trustworthy, the predeclared metric rule accepts it, all mandatory guards pass, scope/ownership remains valid, and cleanup succeeds. Record typed process, metric, guard, cleanup, and rollback outcomes without collapsing them into one score.
 - Phase 5: stop only under [rules/validation-and-exit.md](rules/validation-and-exit.md), then write the Korean final report with score delta, changed files, evidence, dashboard path, and caveats.
 
 </workflow>
@@ -279,6 +282,8 @@ The run must satisfy:
 - Support-file pointers are clear and no deeper than one level from `SKILL.md`.
 - Scope, prompt pack, eval set, environment, rollback conditions, evidence policy, and trace assertions are recorded in artifacts.
 - Verify/Guard are distinct: scoring proves improvement; guards prove no required behavior regressed.
+- `tie`, `inconclusive`, invalid evidence, guard `fail`/`error`, cleanup failure, and rollback failure are non-keep by default and cannot be compensated by a higher score.
+- Restoration is compare-before-restore and ownership-scoped; completion records atomic terminal state, the last finalized iteration, and cleanup/rollback receipts.
 - `results.json`, `results.tsv`, and `results.js` satisfy [references/artifact-spec.md](references/artifact-spec.md) and the dashboard renders from generated data.
 - Dashboard labels, experiment descriptions, score explanations, changelog notes, and final user reports are Korean by default; data keys and status enum tokens remain stable.
 - Completed runs include a dashboard-visible `score_explanation` or equivalent `score-explanation.md` loaded through `results.js`.

@@ -17,6 +17,7 @@
 |-- source-ledger.md     # 외부/current claim을 썼으면 필수
 |-- trace-summary.md     # 도구/delegation/병렬 평가가 있으면 필수
 |-- baseline-files.json  # SKILL.md 밖 support file도 바뀔 수 있으면 필수
+|-- recovery.json        # candidate가 file/resource를 mutate하거나 run resume이 가능하면 필수
 |-- details/             # 선택; 긴 분석, 프롬프트 팩, eval 결과 원문
 `-- SKILL.md.baseline
 ```
@@ -59,7 +60,34 @@ baseline 전 계약을 짧게 기록한다. 외부/current source, 도구, deleg
 - Output: [남길 아티팩트]
 - Verification: [binary eval, trace assertion, artifact check]
 - Stop condition: [예산, 안정 고득점, blocker, reset 조건]
+- Recovery/Handoff: [frontier/candidate identity, owned path, compare-before-restore, resumability]
 ```
+
+## `recovery.json`
+
+Mutating 또는 resumable run에서는 unrelated work를 덮어쓰지 않고 복구할 수 있는 상태를 기록한다:
+
+```json
+{
+  "generation": 3,
+  "last_finalized_iteration": 2,
+  "cursor": "evaluate-candidate-3",
+  "frontier_identity": "sha256:...",
+  "candidate_identity": "sha256:...",
+  "config_identity": "sha256:...",
+  "eval_identity": "sha256:...",
+  "environment_identity": "sha256:...",
+  "owned_paths": ["skills/diagram-generator/SKILL.md"],
+  "artifact_digests": {"results.json": "sha256:..."},
+  "cleanup_status": "pending",
+  "rollback_status": "not-required",
+  "redactions": ["environment values omitted"],
+  "resume_disposition": "resumable",
+  "resume_checks": ["frontier", "candidate", "config", "eval", "environment", "ownership", "artifacts", "cleanup"]
+}
+```
+
+허용되는 `resume_disposition`은 `resumable`, `manual_recovery`, `non_resumable`이다. 선언한 resume check를 모두 통과한 경우에만 `resumable`을 사용한다. Compare-before-restore에서 예상하지 않은 postimage를 감지하면 덮어쓰지 않고 양쪽 identity를 보존하며 `rollback-error`를 기록한다.
 
 ## `source-ledger.md`
 
@@ -90,16 +118,16 @@ provider/runtime/current claim, 외부 문서, 보안/컴플라이언스 주장�
 다음 헤더를 가진 탭 구분 파일:
 
 ```text
-experiment	commit	score	max_score	pass_rate	metric	delta	guard	guard_metric	status	description
+experiment	commit	score	max_score	pass_rate	metric_status	metric	delta	guard	cleanup	rollback	status	description
 ```
 
 예시:
 
 ```text
-experiment	commit	score	max_score	pass_rate	metric	delta	guard	guard_metric	status	description
-0	a1b2c3d	14	20	70.0%	70.0	0.0	pass	-	baseline	원본 스킬 - 수정 없음
-1	b2c3d4e	16	20	80.0%	80.0	+10.0	pass	-	keep	번호 매기기 관련 anti-pattern 추가
-2	-	16	20	80.0%	80.0	0.0	pass	-	discard	레이아웃 지침을 앞으로 옮겼지만 측정 가능한 이득 없음
+experiment	commit	score	max_score	pass_rate	metric_status	metric	delta	guard	cleanup	rollback	status	description
+0	a1b2c3d	14	20	70.0%	valid	70.0	0.0	pass	pass	not-required	baseline	원본 스킬 - 수정 없음
+1	b2c3d4e	16	20	80.0%	valid	80.0	+10.0	pass	pass	not-required	keep	번호 매기기 관련 anti-pattern 추가
+2	-	16	20	80.0%	valid	80.0	0.0	pass	pass	pass	discard	레이아웃 지침을 앞으로 옮겼지만 측정 가능한 이득 없음
 ```
 
 ## `results.json`
@@ -123,10 +151,13 @@ experiment	commit	score	max_score	pass_rate	metric	delta	guard	guard_metric	stat
       "score": 14,
       "max_score": 20,
       "metric": 70.0,
+      "metric_status": "valid",
       "delta": 0.0,
       "pass_rate": 70.0,
       "guard": "pass",
       "guard_metric": null,
+      "cleanup": "pass",
+      "rollback": "not-required",
       "status": "baseline",
       "description": "원본 스킬 - 수정 없음"
     }
@@ -134,6 +165,10 @@ experiment	commit	score	max_score	pass_rate	metric	delta	guard	guard_metric	stat
   "run_contract_path": "run-contract.md",
   "source_ledger_path": "source-ledger.md",
   "trace_summary_path": "trace-summary.md",
+  "recovery_path": "recovery.json",
+  "last_finalized_iteration": 2,
+  "terminal_reason": null,
+  "resume_disposition": "resumable",
   "score_explanation": {
     "summary_ko": "기준 70.0%에서 최고 90.0%로 +20.0%p 상승했습니다.",
     "baseline_score": 70.0,
@@ -178,11 +213,22 @@ experiment	commit	score	max_score	pass_rate	metric	delta	guard	guard_metric	stat
 - `keep`
 - `keep-reworked`
 - `discard`
-- `crash`
+- `tie`
+- `inconclusive`
+- `candidate-crash`
+- `infra-flake`
+- `timeout`
+- `signaled`
 - `no-op`
 - `hook-blocked`
 - `metric-error`
+- `guard-failed`
+- `guard-error`
+- `cleanup-error`
+- `rollback-error`
 - `reset`
+
+Process completion, metric validity/value, 각 mandatory Guard, cleanup, rollback, final decision을 별도 field로 둔다. 더 높은 metric은 failed/error Guard나 incomplete cleanup/recovery를 상쇄하지 못한다. Candidate promote 또는 terminal state 선언 전에 iteration result와 `last_finalized_iteration`을 atomic하게 기록한다.
 
 ## `dashboard.html`
 
@@ -212,7 +258,7 @@ experiment	commit	score	max_score	pass_rate	metric	delta	guard	guard_metric	stat
 - 완료 실행에는 `score-explanation.md`와 `final-report.md`를 최신 상태로 둔다. 단, 동일한 점수 설명이 `results.json.score_explanation`에 충분히 담겼으면 대체 가능하다
 - source/tool/delegation이 실행에 영향을 주면 `run-contract.md`, `source-ledger.md`, `trace-summary.md`도 최신 상태로 둔다
 - 실험이 실행 중일 때는 `results.json.status`를 `running`으로 둔다
-- 루프가 끝나면 `results.json.status`를 `complete`로 둔다
+- 루프가 끝나면 last iteration, terminal reason, cleanup/rollback receipt, resumability disposition이 finalized된 뒤에만 `results.json.status`를 `complete`로 둔다
 - 대시보드를 `file://`로 여는 경우 `fetch("./results.json")`만 믿지 않는다
 - 같은 데이터를 브라우저 글로벌에 할당하는 `results.js` 같은 파일 기반 폴백을 제공한다
 - 폴백 파일이 있으면 `results.js`는 항상 `results.json`과 동기화한다

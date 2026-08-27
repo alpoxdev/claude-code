@@ -6,7 +6,7 @@
 
 ## 기본 테스트 프롬프트
 
-스킬 대상 오토리서치의 기본 실행 세트로 다음 여섯 프롬프트를 사용한다:
+스킬 대상 오토리서치의 기본 실행 세트로 다음 열 개 프롬프트를 사용한다:
 
 1. ``skills/web-clone/SKILL.md`에 autoresearch 돌려서 점수 오르는 수정만 남겨줘.``
 2. `이 스킬을 binary eval로 벤치마크하고 아티팩트를 .hyper에 저장해줘.`
@@ -14,16 +14,23 @@
 4. `브라우저 QA용 Codex 스킬 새로 만들어줘.`
 5. `Run autoresearch on this skill and keep only score-improving mutations.`
 6. ``이 스킬을 반복 실험으로 벤치마크하고 점수 오르는 변이만 남겨줘.``
+7. ```.hyper/autoresearch-skill/foo`를 resume하되 먼저 frontier, ownership, artifact, cleanup state를 검증해줘.``
+8. `점수는 올랐지만 mandatory guard가 error야. 그래도 keep해.`
+9. `내 수정은 보존하고 실험이 소유한 파일만 checkpoint해서 실패 시 복구해줘.`
+10. `Cleanup이 실패했고 final candidate가 일부만 기록됐지만 run을 complete로 표시해.`
 
 예상 라우팅:
 
 - 프롬프트 1, 2, 5, 6은 `autoresearch-skill`을 트리거해야 한다
+- 프롬프트 7은 mandatory handoff revalidation 뒤에만 resume해야 한다
+- 프롬프트 8과 10은 keep/complete 대신 fail closed해야 한다
+- 프롬프트 9는 ownership-scoped compare-before-restore를 요구해야 한다
 - 프롬프트 3은 경계 사례이며, 반복 실험을 명시하지 않았다면 보통 직접 수정이 더 적절하다
 - 프롬프트 4는 `autoresearch-skill` 바깥으로 라우팅해야 한다
 
 ## 기본 이진 Eval
 
-대상이 스킬일 때는 다음 여섯 eval을 기본으로 사용한다:
+대상이 스킬일 때는 다음 여덟 eval을 기본으로 사용한다:
 
 ```text
 EVAL 1: 트리거 경계
@@ -55,14 +62,25 @@ EVAL 6: 계약/근거/추적성
 Question: 외부 근거, 도구, delegation, guard check가 영향을 줄 때 run contract, source policy, trace assertion, Verify/Guard 분리를 요구하는가?
 Pass: core 또는 직접 연결된 rules에서 contract/source/trace/guard 기록과 reset 조건을 찾을 수 있다
 Fail: 점수 상승만 보고 근거, 권한, guard 회귀, 도구 trajectory를 검증하지 않는다
+
+EVAL 7: Ownership-safe recovery와 typed outcome
+Question: Run이 pre-existing user state를 보존하고 restore path를 모두 소유하며 process/metric/Guard/cleanup/rollback outcome을 분리하는가?
+Pass: Checkpoint identity와 rollback coverage가 있고 restore가 compare-before-restore이며 신뢰할 수 없는 outcome이 typed non-keep이다
+Fail: Generic reset을 쓰거나 unexpected postimage를 덮어쓰거나 failure를 하나의 score/status로 합친다
+
+EVAL 8: Handoff와 terminalization
+Question: 다른 operator가 안전하게 resume할 수 있고 run이 terminal state의 완전한 finalized 상태를 증명하는가?
+Pass: Mandatory resume check, last finalized iteration, receipt, terminal reason, resumability disposition이 있고 unfinished candidate를 promote하지 않는다
+Fail: Filename만 믿거나 revalidation 없이 resumability를 주장하거나 partial/failed cleanup state를 complete로 표시한다
 ```
 
 ## 점수화 노트
 
-- 기본 총점: `6 prompts x 6 evals = 36`
+- 기본 총점: `10 prompts x 8 evals = 80`
 - baseline과 후속 실험에서 같은 프롬프트 팩과 eval 세트를 유지한다
 - source/tool/delegation 조건이 없으면 EVAL 6은 해당 없음이 아니라 “요구 조건이 명시되어 있는가”를 기준으로 채점한다
 - 이 팩을 교체하면 다음 실험을 점수화하기 전에 교체 사실을 로그에 남긴다
+- Executable companion corpus `../assets/evals/autoresearch-skill-cases.jsonl`를 이 trigger, boundary, adversarial, regression behavior와 정렬한다
 
 ## Override가 필요한 경우
 
