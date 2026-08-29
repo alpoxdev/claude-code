@@ -1,0 +1,24 @@
+{
+  "generation": 3,
+  "last_finalized_iteration": 3,
+  "cursor": "terminalized-approved",
+  "frontier_identity": "sha256:9d5a8532eccc376e3588748369ef426b3a6681cc2d87de5ad17843c7a015cb3f",
+  "candidate_identity": "sha256:9d5a8532eccc376e3588748369ef426b3a6681cc2d87de5ad17843c7a015cb3f",
+  "config_identity": "sha256:run-contract-core-operational-contract-v1",
+  "eval_identity": "sha256:a4f9f8a6c9a22b617c823e8a6070a5e88210a9931b81a9093954bddcb00ff7bb",
+  "environment_identity": "node-26.7.0-bun-1.4.0-darwin-arm64",
+  "owned_paths": ["skills/ai-design-slop-remover/SKILL.md", "skills/ai-design-slop-remover/SKILL.ko.md"],
+  "artifact_digests": {
+    "score_oracle": "sha256:8b40acb0b1eb06098eb8efb8193c65c781f43a348b4245a3110a3c8ec828f71f",
+    "prompt_pack": "sha256:3198cb4cb66939ee20624b16243028748f603e0adabf6c054ec9b0530fac84c0",
+    "eval_results": "sha256:814e71fa52c8a1429ce55de18550741ab983957e5bddce25b7e08716577913a6",
+    "manual_qa": "sha256:14641a8c99f0145c987c3d30b0e7cc67ef8cbb6bd7475a21b1a1c79055f96d31",
+    "target_english": "sha256:9d5a8532eccc376e3588748369ef426b3a6681cc2d87de5ad17843c7a015cb3f",
+    "target_korean": "sha256:0311eacd5696221aad81cfff0e17006e9cc028c927fdda0be8af6df2517bf034"
+  },
+  "cleanup_status": "pass",
+  "rollback_status": "not-required",
+  "redactions": ["No network requests, credentials, or environment dumps were recorded."],
+  "resume_disposition": "resumable",
+  "resume_checks": ["frontier", "candidate", "config", "eval", "environment", "ownership", "artifacts", "cleanup"]
+}

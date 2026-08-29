@@ -1,0 +1,6 @@
+eval_id	name_ko	baseline	oracle
+E1	Trigger 경계	pass -> pass	SKILL.md의 positive/negative/boundary 예시와 routing rule이 10개 prompt를 분류한다.
+E2	Core 실행 준비	pass -> pass	audit/clean/verify의 첫 action, context, detector, safe edit, verify 순서가 core에서 직접 보인다.
+E3	변경 검증 경로	fail -> pass	`run-detector-evals.cjs`와 `run-contract-evals.cjs`, focused corpus validator가 변경 종류별로 core에서 직접 실행 조건과 명령을 가진다.
+E4	증거·안전 경계	pass -> pass	static/rendered/waiver/baseline/AI-authorship 금지와 config/network/dependency gate가 core에서 발견된다.
+E5	이중 언어·지원 파일 연결	pass -> pass	영문/한국어 core의 direct link와 명시 load condition이 대칭이고 corpus guard가 통과한다.

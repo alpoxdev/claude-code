@@ -1,0 +1,12 @@
+{
+  "baseline_at": "2026-08-29T00:00:00Z",
+  "frontier_identity": "sha256:d04be0a870e50d6204a706606b68ab1bb98137d7f8533d85593380466ffdf330",
+  "owned_paths": [
+    { "path": "skills/ai-design-slop-remover/SKILL.md", "sha256": "d04be0a870e50d6204a706606b68ab1bb98137d7f8533d85593380466ffdf330", "bytes": 9928 },
+    { "path": "skills/ai-design-slop-remover/SKILL.ko.md", "sha256": "87676b9e25d8c2378112a2c2bfaca7a10f2080df5555e44d6dbaed395d767954", "bytes": 10509 },
+    { "path": "skills/ai-design-slop-remover/assets/evals/slop-remover-cases.jsonl", "sha256": "254bedf177363822172699e46d216cf8bc92c1d6d91d90ff250b655bea53603c" },
+    { "path": "skills/ai-design-slop-remover/assets/evals/detector-cases.jsonl", "sha256": "82ea04d459c7f48177c9a33a48c0b1d9528b0e0301b7136b21d3b9e360eeaa4a" },
+    { "path": "skills/ai-design-slop-remover/assets/evals/contract-cases.jsonl", "sha256": "455470c22f92e18d814b9e1139c0a06de20736f4c33575afccaaf57d2b86938d" }
+  ],
+  "rollback_coverage": "SKILL.md and SKILL.ko.md are restored only after recorded candidate postimage equality. Eval files are guard-only and immutable during this run."
+}

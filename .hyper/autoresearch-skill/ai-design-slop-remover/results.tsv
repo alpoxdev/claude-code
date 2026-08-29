@@ -1,0 +1,5 @@
+experiment	commit	score	max_score	pass_rate	metric_status	metric	delta	guard	cleanup	rollback	status	description
+0	-	4	5	80.0%	valid	80.0	0.0	pass	pass	not-required	baseline	원본 v2 core: contract fixture runner의 직접 실행 경로가 없음
+1	-	2	5	40.0%	invalid	-	-	pass	pass	pass	metric-error	초기 수동 E3 판정이 결정적 oracle과 불일치하여 후보를 복구하고 metric reset
+2	-	4	5	80.0%	valid	80.0	0.0	pass	pass	not-required	reset	결정적 core contract oracle로 동일 prompt/eval intent를 재기준화
+3	-	5	5	100.0%	valid	100.0	20.0	pass	pass	not-required	keep	contract fixture와 focused corpus 검증 경로를 영문·한국어 core에 직접 추가
