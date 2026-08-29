@@ -37,7 +37,18 @@ Detector 출력이나 렌더링 관찰을 rule에 연결할 때만 이 목록을
 | `quality.missing-alt` | quality | universal | P1 | partial | no | informative image alt 누락; decorative image는 empty alt 가능 |
 | `quality.mobile-overflow-risk` | quality | universal | P1 | partial | no | fixed/min-width overflow 가능성; 렌더링 확인 필요 |
 | `quality.fake-chrome` | quality | default-risk | P2 | yes | no | 근거 없는 장식용 browser/phone/IDE/terminal chrome |
+| `structure.repeated-eyebrow` | structure | review-only | P3 | yes | no | 반복 eyebrow/kicker signature; 실제 hierarchy/sequence를 전달하면 보존 |
+| `structure.numbered-section-label` | structure | context-dependent | P3 | yes | no | 01/02/03 marker; 사용자가 따라야 할 sequence면 보존 |
+| `structure.identical-icon-card-cluster` | structure | context-dependent | P2 | yes | no | 세 feature-card/icon-tile signature; 실제 peer data/action 보존 |
+| `surface.radial-glow` | surface | review-only | P3 | yes | no | Radial glow signature; 목적 있는 lighting/brand material 보존 |
+| `surface.grid-background` | surface | review-only | P3 | yes | no | 반복 gradient grid; 실제 map/canvas/blueprint context 보존 |
+| `surface.border-plus-wide-shadow` | surface | context-dependent | P3 | yes | no | Border와 wide shadow 조합; 문서화된 elevation system 보존 |
+| `type.decorative-monospace` | typography-copy | default-risk | P3 | yes | no | 장식적 technical language와 monospace; code, ID, log, measurement, 실제 state 보존 |
+| `motion.pulse-without-state` | motion-interaction | default-risk | P2 | yes | no | Pulse signature; recording, sync, unread, notification, live state 보존 |
+| `quality.heading-skip` | quality | universal | P2 | yes | no | 정적 h1→h3 heading skip; component composition은 review 필요 |
 
 ## Registry 해석
 
 Static `yes`는 포함 detector가 source signature를 찾는다는 뜻이지 UI 결함 확정이 아니다. `partial`은 source heuristic에 맥락 또는 렌더링이 필요하다는 뜻이다. Browser-only·주관적 pattern은 명시적 warrant와 caveat가 있을 때만 보고한다. 수정 단계에는 `fix-playbook.ko.md`를 읽는다.
+
+Detector v2는 `engine`, `evidenceKind`, detection/remediation confidence, cluster, exception status를 보고한다. `candidate` exception은 계속 보이는 review item이며 finding을 suppress하거나 automatic removal 권한을 주지 않는다.

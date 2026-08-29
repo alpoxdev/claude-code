@@ -16,6 +16,13 @@
 - `context-dependent`: page type, domain, audience, data shape, brief가 필요함.
 - `review-only`: 정적 일치만으로 gate가 될 수 없음.
 
+## 증거와 exception status
+
+- `detection confidence`는 engine이 source, context, DOM, rendered signature를 얼마나 확실하게 찾았는지다.
+- `remediation confidence`는 finding을 brief 또는 protected contract 위반 없이 바꿀 수 있는 확실성이다.
+- `candidate` exception은 명시 local brand, data, real-state evidence가 preserve를 뒷받침한다는 뜻이다. review를 위해 계속 보이며 rule을 suppress하거나 auto-fix 권한을 주지 않는다.
+- `generic-output risk`는 context-confirmed cluster를 바탕으로 한 `low`, `medium`, `high` 우선순위다. AI가 인터페이스를 작성했다는 증거가 아니다.
+
 ## Category
 
 - `structure`: 반복 hero, feature grid, card, navigation, footer, bento, sidebar, section fingerprint.

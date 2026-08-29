@@ -10,6 +10,12 @@ Every finding must include:
 | `risk` | What product, usability, identity, accessibility, or maintenance outcome may fail |
 | `severity` | P0–P3 using the definitions below |
 | `confidence` | `high`, `medium`, or `low` |
+| `engine` | `text`, `css`, `markup`, `context`, `dom`, or `visual`; state whether it actually ran |
+| `evidence kind` | `static-source`, explicit local context, rendered handoff, accessibility, behavior, or rationale |
+| `detection confidence` | Certainty that the engine observed its signature |
+| `remediation confidence` | Certainty that changing it preserves protected contracts |
+| `exception status` | `not-checked`, `candidate`, or documented waiver; candidate remains reviewable |
+| `cluster` | Generic-output prioritization group, never authorship evidence |
 | `evidence` | File/line, DOM/CSS, screenshot/state, command result, brief, or source |
 | `warrant` | Why the evidence supports this risk in this context |
 | `recommendation` | `remove`, `replace`, `preserve`, `ask`, or `block`, with a bounded action |

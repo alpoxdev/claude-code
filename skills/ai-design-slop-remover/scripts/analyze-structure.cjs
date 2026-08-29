@@ -64,6 +64,9 @@ async function main() {
         file: relative(root, file) || file,
         sections: count(text, /<section\b/gi),
         cards: count(text, /\bcard\b/gi),
+        eyebrows: count(text, /\b(?:eyebrow|kicker)\b/gi),
+        numberedSectionLabels: count(text, /\b(?:section-number|step-number)\b|>\s*0[1-9]\s*</gi),
+        iconTiles: count(text, /\bicon-tile\b/gi),
         gridsOfThree: count(text, /\b(?:grid-cols-3|repeat\(\s*3\s*,)/gi),
         headings: count(text, /<h[1-6]\b/gi),
         ctas: count(text, /\b(?:cta|call-to-action)\b/gi),
@@ -73,12 +76,12 @@ async function main() {
     }
     console.log(JSON.stringify({
       target: args.target,
-      version: 1,
+      version: 2,
       files: results,
-      limitations: ['Counts are structural source signals only; they do not determine whether a layout is generic or inappropriate.'],
+      limitations: ['Counts are structural source signals only; they do not determine whether a layout is generic, inappropriate, or safe to change.'],
     }, null, 2));
   } catch (error) {
-    console.error(JSON.stringify({ error: error instanceof Error ? error.message : String(error), version: 1 }));
+    console.error(JSON.stringify({ error: error instanceof Error ? error.message : String(error), version: 2 }));
     process.exitCode = 2;
   }
 }

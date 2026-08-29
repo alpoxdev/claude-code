@@ -24,6 +24,13 @@
 - `motion-interaction`: `transition-all`, indiscriminate scale/reveal, layout animation, missing reduced motion, hover-only affordance.
 - `quality`: contrast/focus/semantics/responsive defects, fake chrome, and claims made without rendered evidence.
 
+## Evidence and exception status
+
+- `detection confidence` describes how certainly an engine found a source, context, DOM, or rendered signature.
+- `remediation confidence` describes how certainly the finding can be changed without violating the brief or protected contracts.
+- `candidate` exception means explicit local brand, data, or real-state evidence supports preservation. It remains visible for review; it never suppresses a rule or authorizes an auto-fix.
+- `generic-output risk` is `low`, `medium`, or `high` prioritization based on context-confirmed clusters. It is never evidence that AI authored the interface.
+
 ## Required exception checks
 
 - An explicitly requested brand color, gradient, font, or reference is not slop by default.

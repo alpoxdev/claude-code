@@ -10,6 +10,12 @@
 | `risk` | 제품, usability, identity, accessibility, maintenance에서 실패할 수 있는 결과 |
 | `severity` | 아래 정의의 P0–P3 |
 | `confidence` | `high`, `medium`, `low` |
+| `engine` | `text`, `css`, `markup`, `context`, `dom`, `visual` 중 실제 실행한 engine |
+| `evidence kind` | `static-source`, explicit local context, rendered handoff, accessibility, behavior, rationale |
+| `detection confidence` | engine이 signature를 관찰한 확실성 |
+| `remediation confidence` | 변경이 protected contract를 보존할 확실성 |
+| `exception status` | `not-checked`, `candidate`, documented waiver; candidate는 계속 review 가능 |
+| `cluster` | generic-output 우선순위 group이며 authorship 증거가 아님 |
 | `evidence` | file/line, DOM/CSS, screenshot/state, command 결과, brief, source |
 | `warrant` | 이 맥락에서 증거가 risk를 뒷받침하는 이유 |
 | `recommendation` | 제한된 action과 함께 `remove`, `replace`, `preserve`, `ask`, `block` |

@@ -62,3 +62,18 @@
 ## Focus/reduced motion/alt 누락
 
 미적 slop이 아닌 품질 guard로 처리한다. 프로젝트 접근성 관습과 관찰 가능한 동작을 따른다. image가 informative인지 decorative인지 판단한 뒤 descriptive alt 또는 empty alt를 선택한다. source 검사만으로 전체 accessibility를 통과했다고 하지 않는다.
+
+## 반복 section scaffold, glow, grid, monospace, pulse, heading skip
+
+1. pattern이 명시 sequence, code/data/state treatment, 문서화된 elevation/material system, brand commitment가 아닌지 확인한다.
+2. 구조 대안을 제안하기 전 `replacement-patterns.ko.md`를 읽고 data, action, semantic, focus order, responsive behavior를 보존한다.
+3. `candidate` exception을 preserve evidence로 취급한다. finding을 suppress하거나 인접 brand/data 선택을 바꾸지 않는다.
+4. heading order는 level을 바꾸기 전 component composition을 확인한다. pulse/motion은 state communication과 reduced-motion behavior를 보존한다.
+5. 검증된 rendered handoff가 viewport/state/locator 사실을 확인하지 않는 한 static-only limitation을 보고한다.
+
+## Baseline, waiver, rendered handoff
+
+1. baseline은 detector v2 finding만 비교하며 design choice를 승인하지 않는다. `--only-new` 전 `rules/waivers-and-baselines.ko.md`를 읽는다.
+2. optional waiver는 `validate-waivers.cjs`로 검증한다. 좁은 범위, reason, source가 있어야 하며 P0 또는 protected contract를 숨길 수 없다.
+3. 제공된 browser fact는 `collect-rendered-evidence.cjs`로 검증한다. capture된 viewport/state/locator observation만 사용한다.
+4. 이 input을 얻기 위해 tooling을 설치하거나 consumer config file을 쓰지 않는다.

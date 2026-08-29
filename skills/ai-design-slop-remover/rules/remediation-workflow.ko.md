@@ -11,9 +11,9 @@
 1. 요청에서 대상과 모드를 확정한다. 대상이 없으면 수정은 block한다.
 2. 구현 세부를 스캔하기 전에 프로젝트 권한과 존재하는 제품·디자인 맥락을 읽는다.
 3. brief inference와 unknown을 기록한다. `PRODUCT.md`나 `DESIGN.md` 부재를 greenfield 권한으로 해석하지 않는다.
-4. `detect-slop.cjs`를 실행한다. 반복 페이지 구조가 관련되면 `analyze-structure.cjs`도 실행한다.
-5. 브라우저가 있으면 렌더링 증거를 수집한다. surface가 지원하는 범위에서 320, 375, 414, 768, 1280×800, 1440+ 폭과 관련 hover, focus, active, disabled, loading, empty, error, reduced-motion 상태를 확인한다.
-6. 각 finding에 rule scope, severity, confidence, evidence family를 지정하고 `remove`, `replace`, `preserve`, `ask`, `block`을 선택한다.
+4. `detect-slop.cjs`를 실행한다. report-only delta 비교에만 `--baseline <result.json> --only-new`을 사용하며 debt를 승인하지 않는다. 반복 페이지 구조가 관련되면 `analyze-structure.cjs`도 실행한다.
+5. 이미 사용 가능한 browser capability 또는 검증된 handoff가 있을 때만 렌더링 증거를 수집한다. project breakpoint 또는 375, 768, 1280 폭을 사용하고 관련 hover, focus, active, disabled, loading, empty, error, reduced-motion 상태만 확인한다.
+6. 각 finding에 engine, evidence kind, detection/remediation confidence, exception status, rule scope, severity, evidence family를 지정하고 `remove`, `replace`, `preserve`, `ask`, `block`을 선택한다.
 7. `clean`에서는 가장 작은 저위험 범주부터 적용한다. 무관한 redesign을 한 pass에 묶지 않는다.
 8. detector와 영향받은 프로젝트 검사를 다시 실행하고, 가능하면 렌더링 동작을 확인한다.
 9. 구체적으로 실패한 guard에만 보정 pass 1회를 허용한다. 총 2 edit pass 후 중단한다.
@@ -28,6 +28,7 @@
 - 관찰된 동작 regression 없음
 - 보호된 copy, IA, legal text, URL, form contract, asset, brand commitment 유지
 - 정당한 trade-off 없이 detector 수치가 악화되지 않음
+- candidate exception, baseline, waiver가 protected-contract 또는 P0 issue를 숨기지 않음
 - 실제 검사한 responsive·accessibility guard 통과
 - 추론하거나 명시된 brief 유지
 

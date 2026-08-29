@@ -4,6 +4,10 @@
 
 - Target: `<path or surface>`
 - Mode: `audit | clean | verify`
+- Detector: `v2 | unavailable (reason)`
+- Engines run: `text | css | markup | context | dom | visual`
+- Baseline delta: `not used | only-new | unavailable (reason)`
+- Generic-output risk: `low | medium | high | unassessed`
 - Render verification: `complete | static_only | unavailable`
 - Edit passes: `0 | 1 | 2`
 - Final status: `pass | review_required | blocked`
@@ -15,27 +19,29 @@
 - Audience:
 - Primary task:
 - Identity to preserve:
+- Required data/state/cardinality:
 - Scope for this run:
 - Unknowns:
 
 ## Findings
 
-| ID | Class | Severity | Confidence | Evidence/location | Action | Status |
-|---|---|---|---|---|---|---|
-| `rule.id` | `default-risk` | `P2` | `high` | `file:line` | `replace` | `resolved` |
+| ID | Class | Severity | Detection / remediation confidence | Engine / evidence | Exception | Action | Status |
+|---|---|---|---|---|---|---|---|
+| `rule.id` | `default-risk` | `P2` | `high / low` | `text / static-source` at `file:line` | `not-checked` | `review` | `open` |
 
 ## Applied changes
 
 - Files:
 - Change:
 - Preserved contracts:
+- Candidate or persisted waivers: `없음 | rule, narrow scope, reason, source`
 
 ## Verification
 
-- Detector:
+- Detector/baseline:
 - Build/typecheck/lint/test:
-- Desktop render:
-- Mobile render:
+- Rendered evidence: viewport/state/locator facts, or `static_only` / `unavailable` reason
+- Desktop/mobile render:
 - Accessibility:
 - Reduced motion:
 - Behavior regression:
@@ -44,6 +50,7 @@
 ## Residual risk
 
 - Unrendered items:
-- Review-only findings:
+- Review-only/context-dependent findings:
 - User decisions:
+- Evidence boundaries: screenshots do not prove keyboard, semantics, accessibility, or end-to-end behavior.
 - Other caveats:

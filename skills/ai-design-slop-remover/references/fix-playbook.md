@@ -62,3 +62,18 @@ Preserve when it frames a real screenshot or communicates product context. Other
 ## Missing focus/reduced motion/alt
 
 Treat these as quality guards, not aesthetic slop. Use project accessibility conventions and observable behavior. Determine whether an image is informative or decorative before choosing descriptive or empty alt. Do not claim full accessibility from source inspection alone.
+
+## Repeated section scaffolds, glow, grid, monospace, pulse, or heading skip
+
+1. Confirm the pattern is not an explicit sequence, code/data/state treatment, documented elevation/material system, or brand commitment.
+2. Read `replacement-patterns.md` before proposing a structural alternative; preserve data, actions, semantics, focus order, and responsive behavior.
+3. Treat `candidate` exception as preservation evidence. Do not suppress the finding or modify adjacent brand/data choices.
+4. For heading order, inspect component composition before changing levels. For pulse/motion, preserve state communication and reduced-motion behavior.
+5. Report static-only limitations unless a validated rendered handoff confirms viewport/state/locator facts.
+
+## Baseline, waiver, and rendered handoff
+
+1. A baseline compares detector v2 findings only; it never approves a design choice. Read `rules/waivers-and-baselines.md` before `--only-new`.
+2. Validate an optional waiver with `validate-waivers.cjs`. It must be narrow, reasoned, and sourced; it cannot hide a P0 or protected contract.
+3. Validate supplied browser facts with `collect-rendered-evidence.cjs`. Use only the captured viewport/state/locator observations.
+4. Do not install tooling or write a consumer config file to obtain any of these inputs.

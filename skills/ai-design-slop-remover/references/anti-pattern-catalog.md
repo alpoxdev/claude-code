@@ -37,7 +37,18 @@ Load this catalog only when mapping detector output or a rendered observation to
 | `quality.missing-alt` | quality | universal | P1 | partial | no | Informative image lacks alt; decorative image may need empty alt |
 | `quality.mobile-overflow-risk` | quality | universal | P1 | partial | no | Fixed/min-width likely to overflow; rendering must confirm |
 | `quality.fake-chrome` | quality | default-risk | P2 | yes | no | Browser/phone/IDE/terminal chrome used as unsupported decoration |
+| `structure.repeated-eyebrow` | structure | review-only | P3 | yes | no | Repeated eyebrow/kicker signature; preserve labels that carry real hierarchy or sequence |
+| `structure.numbered-section-label` | structure | context-dependent | P3 | yes | no | 01/02/03 markers; preserve a sequence users must follow |
+| `structure.identical-icon-card-cluster` | structure | context-dependent | P2 | yes | no | Three feature-card/icon-tile signatures; preserve genuine peer data and actions |
+| `surface.radial-glow` | surface | review-only | P3 | yes | no | Radial glow signature; preserve purposeful lighting or brand material |
+| `surface.grid-background` | surface | review-only | P3 | yes | no | Repeated gradient grid; preserve real map/canvas/blueprint context |
+| `surface.border-plus-wide-shadow` | surface | context-dependent | P3 | yes | no | Border plus wide shadow; preserve documented elevation systems |
+| `type.decorative-monospace` | typography-copy | default-risk | P3 | yes | no | Monospace with decorative technical language; preserve code, IDs, logs, measurements, and real state |
+| `motion.pulse-without-state` | motion-interaction | default-risk | P2 | yes | no | Pulse signature; preserve recording, sync, unread, notification, or live state |
+| `quality.heading-skip` | quality | universal | P2 | yes | no | Static h1→h3 heading skip; component composition may require review |
 
 ## Registry interpretation
 
 Static `yes` means the bundled detector can find a source signature, not that the UI is defective. `partial` means source heuristics need context or rendering. Browser-only and subjective patterns remain reportable only with an explicit warrant and caveat. For remediation steps, load `fix-playbook.md`.
+
+Detector v2 reports `engine`, `evidenceKind`, detection/remediation confidence, cluster, and exception status. A `candidate` exception remains a visible review item; it does not suppress a finding or authorize automatic removal.

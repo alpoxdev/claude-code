@@ -2,7 +2,7 @@
 
 ## 검증 순서
 
-1. 같은 대상에 `detect-slop.cjs`를 다시 실행하고 rule ID와 severity count를 비교한다.
+1. 같은 대상에 `detect-slop.cjs`를 다시 실행하고 rule ID, severity count, engine/evidence field, 사용한 baseline delta를 비교한다.
 2. 변경 파일을 포함하는 가장 작은 project build, typecheck, lint, test를 실행한다. 실패를 억제하지 말고 확인한다.
 3. 렌더링이 가능하면 대표 desktop·mobile 폭과 관련 interaction·async state를 확인한다.
 4. 변경과 관련된 keyboard focus, semantics, 측정 가능한 contrast, reduced motion, responsive overflow를 확인한다.
@@ -15,6 +15,8 @@
 - 렌더링 검사 없이 visual pass를 보고하지 않는다.
 - screenshot 또는 CSS source만으로 accessibility pass를 보고하지 않는다.
 - context-dependent·review-only heuristic을 확정 결함으로 바꾸지 않는다.
+- `generic-output risk`를 AI 저작 결과라고 부르지 않는다.
+- candidate exception 또는 baseline을 suppression이나 remediation pass로 취급하지 않는다.
 - product metric, brand claim, testimonial, user, source provenance를 발명하지 않는다.
 - 실행하지 않은 검사는 모두 불가능하거나 범위 밖인 이유와 함께 기록한다.
 
@@ -29,6 +31,8 @@
 - `## 적용한 변경`
 - `## 검증`
 - `## 남은 위험`
+
+V2 report에는 detector version/engine, generic-output risk, baseline delta, reason이 있는 candidate/persisted waiver, `complete | static_only | unavailable` rendered-evidence status도 기록한다.
 
 `audit`은 변경을 적용하지 않았다고 쓸 수 있다. `verify`는 확인한 변경 또는 finding set을 식별해야 한다. 빈 section은 허용하지 않으며 이유와 함께 `없음` 또는 `미검증`을 쓴다.
 
