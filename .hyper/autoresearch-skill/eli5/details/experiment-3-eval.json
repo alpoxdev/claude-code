@@ -1,0 +1,20 @@
+{
+  "experiment": 3,
+  "hypothesis": "Choosing one request-specific response shape will reduce redundant layers more reliably than a numeric length budget.",
+  "candidate_identity": "sha256:d63456d47336bff4716c3eec941aae3c2043bd4f781d01bda48bbe6aeef4aaf1+9a8fd42e0f0819e267473b49b078f5f502c11eda02e575d25e13ce55588693fa",
+  "valid_judgments": 25,
+  "score": 142,
+  "max_score": 150,
+  "pass_rate": 94.7,
+  "delta": 0.7,
+  "breakdown": {"E1":25,"E2":23,"E3":25,"E4":25,"E5":19,"E6":25},
+  "prompt_breakdown": [
+    {"prompt":1,"score":27,"max":30},
+    {"prompt":2,"score":25,"max":30},
+    {"prompt":3,"score":30,"max":30},
+    {"prompt":4,"score":30,"max":30},
+    {"prompt":5,"score":30,"max":30}
+  ],
+  "decision": "keep",
+  "remaining_failures": "Economy remains unstable for executive explanations; two eventual-consistency trials overstated speed/reliability benefits."
+}

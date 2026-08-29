@@ -1,0 +1,13 @@
+{
+  "experiment": 1,
+  "hypothesis": "Core-level length and structure budgets will reduce redundant summaries and manager over-formatting.",
+  "candidate_identity": "sha256:a03331df46daa2de741af165f33dc07da8a9a76bd019f75ded49a2702a7ad352",
+  "valid_judgments": 25,
+  "score": 140,
+  "max_score": 150,
+  "pass_rate": 93.3,
+  "delta": -0.7,
+  "breakdown": {"E1":25,"E2":24,"E3":25,"E4":25,"E5":16,"E6":25},
+  "decision": "discard",
+  "rollback": "compare-before-restore candidate hash matched; isolated sentence removed"
+}

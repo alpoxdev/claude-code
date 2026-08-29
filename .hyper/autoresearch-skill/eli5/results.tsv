@@ -1,0 +1,6 @@
+experiment	commit	score	max_score	pass_rate	metric_status	metric	delta	guard	cleanup	rollback	status	description
+0	-	141	150	94.0%	valid	94.0	0.0	pass	pass	not-required	baseline	현재 eli5 스킬 - 수정 없음
+1	-	140	150	93.3%	valid	93.3	-0.7	pass	pass	pass	discard	코어에 기본 분량·구조 예산 한 문장 추가
+2	-	141	150	94.0%	valid	94.0	0.0	pass	pass	not-required	reset	필수 영한 미러를 후보 범위에 포함해 동일 후보 재측정
+3	-	142	150	94.7%	valid	94.7	+0.7	pass	pass	not-required	keep	요청 유형별 단일 출력 형태 선택과 반복 결론 금지
+4	-	142	150	94.7%	valid	94.7	0.0	fail	pass	pass	guard-failed	수동 QA에서 의사결정·진단 출력 계약 미준수로 후보 원복

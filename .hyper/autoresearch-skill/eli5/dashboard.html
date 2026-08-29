@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오토리서치 대시보드</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fbfbfd;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --baseline: #7aa2f7;
+      --keep: #74c69d;
+      --discard: #f28482;
+      --crash: #f59e0b;
+      --metric-error: #a78bfa;
+      --no-op: #cbd5e1;
+      --idle: #fde68a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: linear-gradient(180deg, #fdfdfd 0%, #f7f8fc 100%);
+      color: var(--text);
+    }
+
+    .shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    h1, h2 {
+      margin: 0 0 12px;
+      font-weight: 650;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .metric {
+      display: grid;
+      gap: 6px;
+    }
+
+    .metric strong {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .status-cell {
+      min-width: 120px;
+    }
+
+    .status-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 650;
+    }
+
+    .status-bar::before {
+      content: "";
+      display: inline-block;
+      width: 34px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--status-color, var(--no-op));
+    }
+
+    .empty {
+      padding: 16px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      color: var(--muted);
+      background: #fcfcff;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    details {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fcfcff;
+      overflow: hidden;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      font-weight: 650;
+    }
+
+    summary span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .markdown-body {
+      margin: 0;
+      padding: 14px;
+      border-top: 1px solid var(--border);
+      overflow: auto;
+      word-break: break-word;
+      color: #334155;
+      background: #f8fafc;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .markdown-body h1,
+    .markdown-body h2,
+    .markdown-body h3,
+    .markdown-body h4 {
+      margin: 14px 0 8px;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .markdown-body h1 { font-size: 20px; }
+    .markdown-body h2 { font-size: 17px; }
+    .markdown-body h3,
+    .markdown-body h4 { font-size: 15px; }
+
+    .markdown-body h1:first-child,
+    .markdown-body h2:first-child,
+    .markdown-body h3:first-child,
+    .markdown-body h4:first-child,
+    .markdown-body p:first-child {
+      margin-top: 0;
+    }
+
+    .markdown-body p {
+      margin: 8px 0;
+      color: #334155;
+    }
+
+    .markdown-body ul {
+      margin: 8px 0;
+      padding-left: 20px;
+      color: #334155;
+    }
+
+    .markdown-body code {
+      padding: 2px 5px;
+      border-radius: 6px;
+      background: #e2e8f0;
+      color: #0f172a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+    }
+
+    .markdown-body pre {
+      margin: 10px 0;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: auto;
+      white-space: pre-wrap;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+
+    .markdown-body pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      font-size: 12px;
+    }
+
+    .markdown-body table {
+      margin: 10px 0;
+      background: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel">
+      <h1>오토리서치 대시보드</h1>
+      <p id="subtitle">results.json을 불러오는 중...</p>
+    </section>
+
+    <section class="panel">
+      <div class="status" id="status-pill">대기 중</div>
+    </section>
+
+    <section class="grid">
+      <div class="panel metric">
+        <p>기준 점수</p>
+        <strong id="baseline-score">-</strong>
+      </div>
+      <div class="panel metric">
+        <p>최신 통과율</p>
+        <strong id="latest-pass-rate">-</strong>
+      </div>
+      <div class="panel metric">
+        <p>최고 점수</p>
+        <strong id="best-score">-</strong>
+      </div>
+      <div class="panel metric">
+        <p>현재 실험</p>
+        <strong id="current-exp">0</strong>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>점수 상승 요약</h2>
+      <div id="score-summary-wrap" class="empty">아직 점수 상승 설명이 없습니다.</div>
+    </section>
+
+    <section class="panel">
+      <h2>점수 추이</h2>
+      <canvas id="score-chart" height="120"></canvas>
+    </section>
+
+    <section class="panel">
+      <h2>실험 기록</h2>
+      <div id="experiments-wrap" class="empty">아직 기록된 실험이 없습니다.</div>
+    </section>
+
+    <section class="panel">
+      <h2>평가 분해</h2>
+      <div id="eval-wrap" class="empty">아직 기록된 평가 데이터가 없습니다.</div>
+    </section>
+
+    <section class="panel">
+      <h2>상세 로그</h2>
+      <div id="details-wrap" class="empty">상세 파일이 아직 없습니다.</div>
+    </section>
+  </div>
+
+  <script>
+    function injectScript(src) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.id = "generated-results";
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    function toPercent(value) {
+      return value == null ? "-" : `${value}%`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+
+    function renderInlineMarkdown(value) {
+      let html = escapeHtml(value);
+      html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+      html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      return html;
+    }
+
+    function splitMarkdownTableRow(line) {
+      const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+      return trimmed.split("|").map((cell) => cell.trim());
+    }
+
+    function isMarkdownTableSeparator(line) {
+      return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+    }
+
+    function renderMarkdownTable(lines, startIndex) {
+      const header = splitMarkdownTableRow(lines[startIndex]);
+      let index = startIndex + 2;
+      const rows = [];
+      while (index < lines.length && lines[index].includes("|") && lines[index].trim()) {
+        rows.push(splitMarkdownTableRow(lines[index]));
+        index += 1;
+      }
+
+      return {
+        html: `<table>
+          <thead><tr>${header.map((cell) => `<th>${renderInlineMarkdown(cell)}</th>`).join("")}</tr></thead>
+          <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${renderInlineMarkdown(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
+        </table>`,
+        nextIndex: index
+      };
+    }
+
+    function renderMarkdown(markdown) {
+      const lines = String(markdown ?? "").replace(/\r\n/g, "\n").split("\n");
+      const blocks = [];
+      let inList = false;
+      let inCode = false;
+      let codeLines = [];
+
+      const closeList = () => {
+        if (inList) {
+          blocks.push("</ul>");
+          inList = false;
+        }
+      };
+
+      for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index];
+        const trimmed = line.trim();
+
+        if (trimmed.startsWith("```")) {
+          if (inCode) {
+            blocks.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+            codeLines = [];
+            inCode = false;
+          } else {
+            closeList();
+            inCode = true;
+          }
+          continue;
+        }
+
+        if (inCode) {
+          codeLines.push(line);
+          continue;
+        }
+
+        if (!trimmed) {
+          closeList();
+          continue;
+        }
+
+        if (index + 1 < lines.length && line.includes("|") && isMarkdownTableSeparator(lines[index + 1])) {
+          closeList();
+          const table = renderMarkdownTable(lines, index);
+          blocks.push(table.html);
+          index = table.nextIndex - 1;
+          continue;
+        }
+
+        const heading = /^(#{1,4})\s+(.+)$/.exec(trimmed);
+        if (heading) {
+          closeList();
+          const level = heading[1].length;
+          blocks.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+          continue;
+        }
+
+        const listItem = /^[-*]\s+(.+)$/.exec(trimmed);
+        if (listItem) {
+          if (!inList) {
+            blocks.push("<ul>");
+            inList = true;
+          }
+          blocks.push(`<li>${renderInlineMarkdown(listItem[1])}</li>`);
+          continue;
+        }
+
+        closeList();
+        blocks.push(`<p>${renderInlineMarkdown(trimmed)}</p>`);
+      }
+
+      closeList();
+      if (inCode) {
+        blocks.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+      }
+
+      return blocks.join("");
+    }
+
+    function translateExperimentStatus(status) {
+      const labels = {
+        baseline: "기준",
+        keep: "유지",
+        "keep-reworked": "재작업 유지",
+        discard: "폐기",
+        crash: "실행 실패",
+        "no-op": "변화 없음",
+        "hook-blocked": "훅 차단",
+        "metric-error": "점수 오류",
+        reset: "리셋"
+      };
+      return labels[status] || status || "-";
+    }
+
+    function statusColor(status) {
+      const colors = {
+        baseline: "var(--baseline)",
+        keep: "var(--keep)",
+        "keep-reworked": "var(--keep)",
+        discard: "var(--discard)",
+        crash: "var(--crash)",
+        "hook-blocked": "var(--crash)",
+        "metric-error": "var(--metric-error)",
+        "no-op": "var(--no-op)",
+        reset: "var(--idle)"
+      };
+      return colors[status] || "var(--no-op)";
+    }
+
+    function formatDelta(value) {
+      if (value == null || value === "") return "-";
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return String(value);
+      return `${numeric > 0 ? "+" : ""}${numeric}`;
+    }
+
+    function renderScoreSummary(data) {
+      const wrap = document.getElementById("score-summary-wrap");
+      const summary = data && data.score_explanation;
+      if (!summary) {
+        const baseline = data ? data.baseline_score : null;
+        const best = data ? data.best_score : null;
+        const delta = Number(best) - Number(baseline);
+        if (Number.isFinite(delta)) {
+          wrap.className = "";
+          wrap.innerHTML = `<ul>
+            <li>기준 점수: ${escapeHtml(toPercent(baseline))}</li>
+            <li>최고 점수: ${escapeHtml(toPercent(best))}</li>
+            <li>변화량: ${escapeHtml(formatDelta(delta))}%p</li>
+            <li>상세 설명은 <code>score-explanation.md</code> 또는 상세 로그를 확인하세요.</li>
+          </ul>`;
+          return;
+        }
+        wrap.className = "empty";
+        wrap.textContent = "아직 점수 상승 설명이 없습니다.";
+        return;
+      }
+
+      const improvements = Array.isArray(summary.improvements) ? summary.improvements : [];
+      const changedFiles = Array.isArray(summary.changed_files) ? summary.changed_files : [];
+      const failures = Array.isArray(summary.remaining_failures_ko) ? summary.remaining_failures_ko : [];
+      wrap.className = "";
+      wrap.innerHTML = `
+        <ul>
+          <li>${escapeHtml(summary.summary_ko || "점수 상승 요약이 제공되었습니다.")}</li>
+          <li>기준 점수: ${escapeHtml(toPercent(summary.baseline_score ?? data.baseline_score))}</li>
+          <li>최종/최고 점수: ${escapeHtml(toPercent(summary.final_score ?? data.best_score))}</li>
+          <li>변화량: ${escapeHtml(formatDelta(summary.delta))}%p</li>
+          <li>최고 실험: ${escapeHtml(summary.best_experiment ?? data.best_experiment ?? "-")}</li>
+          <li>가장 효과가 컸던 변경: ${escapeHtml(summary.most_effective_change_ko || "-")}</li>
+        </ul>
+        ${improvements.length ? `<table>
+          <thead><tr><th>영역</th><th>변화량</th><th>이전</th><th>이후</th><th>근거</th></tr></thead>
+          <tbody>${improvements.map((item) => `<tr>
+            <td>${escapeHtml(item.area_ko || "-")}</td>
+            <td>${escapeHtml(formatDelta(item.score_delta))}</td>
+            <td>${escapeHtml(item.before_ko || "-")}</td>
+            <td>${escapeHtml(item.after_ko || "-")}</td>
+            <td>${escapeHtml(item.evidence_ko || "-")}</td>
+          </tr>`).join("")}</tbody>
+        </table>` : ""}
+        ${changedFiles.length ? `<p>수정 파일: ${changedFiles.map(escapeHtml).join(", ")}</p>` : ""}
+        ${failures.length ? `<p>남은 실패: ${failures.map(escapeHtml).join(", ")}</p>` : ""}
+      `;
+    }
+
+    function renderExperiments(experiments) {
+      const wrap = document.getElementById("experiments-wrap");
+      if (!experiments.length) {
+        wrap.className = "empty";
+        wrap.textContent = "아직 기록된 실험이 없습니다.";
+        return;
+      }
+
+      const rows = experiments.map((exp) => `
+        <tr>
+          <td>${escapeHtml(exp.id)}</td>
+          <td>${escapeHtml(exp.commit || "-")}</td>
+          <td>${escapeHtml(exp.score)}/${escapeHtml(exp.max_score)}</td>
+          <td>${escapeHtml(formatDelta(exp.delta))}</td>
+          <td>${toPercent(exp.pass_rate)}</td>
+          <td>${escapeHtml(exp.guard || "-")}</td>
+          <td class="status-cell">
+            <span class="status-bar" style="--status-color: ${statusColor(exp.status)}">
+              ${escapeHtml(translateExperimentStatus(exp.status))}
+            </span>
+          </td>
+          <td>${escapeHtml(exp.description)}</td>
+        </tr>
+      `).join("");
+
+      wrap.className = "";
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>커밋</th>
+              <th>점수</th>
+              <th>변화량</th>
+              <th>통과율</th>
+              <th>보호 검사</th>
+              <th>상태</th>
+              <th>설명</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderBreakdown(items) {
+      const wrap = document.getElementById("eval-wrap");
+      if (!items.length) {
+        wrap.className = "empty";
+        wrap.textContent = "아직 기록된 평가 데이터가 없습니다.";
+        return;
+      }
+
+      wrap.className = "";
+      wrap.innerHTML = `<ul>${items.map((item) =>
+        `<li>${escapeHtml(item.name)}: ${escapeHtml(item.pass_count)}/${escapeHtml(item.total)}</li>`).join("")}</ul>`;
+    }
+
+    function renderDetails(items) {
+      const wrap = document.getElementById("details-wrap");
+      if (!items.length) {
+        wrap.className = "empty";
+        wrap.textContent = "상세 파일이 아직 없습니다.";
+        return;
+      }
+
+      wrap.className = "detail-list";
+      wrap.innerHTML = items.map((item, index) => `
+        <details ${index === 0 ? "open" : ""}>
+          <summary>
+            ${escapeHtml(item.title || item.path || `detail-${index + 1}`)}
+            <span>${escapeHtml(item.path || "")}</span>
+          </summary>
+          <div class="markdown-body">${renderMarkdown(item.content || "")}</div>
+        </details>
+      `).join("");
+    }
+
+    function renderChart(experiments) {
+      const canvas = document.getElementById("score-chart");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.clientWidth || canvas.parentElement.clientWidth || 640;
+      const height = Number(canvas.getAttribute("height")) || 120;
+      const ratio = window.devicePixelRatio || 1;
+
+      canvas.width = Math.max(1, Math.floor(width * ratio));
+      canvas.height = Math.max(1, Math.floor(height * ratio));
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      const values = experiments
+        .map((exp) => Number(exp.pass_rate))
+        .filter((value) => Number.isFinite(value));
+
+      const pad = 24;
+      const plotWidth = Math.max(1, width - pad * 2);
+      const plotHeight = Math.max(1, height - pad * 2);
+
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 1;
+      for (const tick of [0, 25, 50, 75, 100]) {
+        const y = pad + ((100 - tick) / 100) * plotHeight;
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(width - pad, y);
+        ctx.stroke();
+      }
+
+      if (!values.length) {
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "13px sans-serif";
+        ctx.fillText("아직 점수 데이터가 없습니다.", pad, height / 2);
+        return;
+      }
+
+      const pointFor = (value, index) => {
+        const x = values.length === 1
+          ? pad + plotWidth / 2
+          : pad + (index / (values.length - 1)) * plotWidth;
+        const y = pad + ((100 - Math.max(0, Math.min(100, value))) / 100) * plotHeight;
+        return [x, y];
+      };
+
+      ctx.beginPath();
+      values.forEach((value, index) => {
+        const [x, y] = pointFor(value, index);
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = "#7aa2f7";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#7aa2f7";
+      values.forEach((value, index) => {
+        const [x, y] = pointFor(value, index);
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "11px sans-serif";
+      ctx.fillText("0%", 2, height - pad + 4);
+      ctx.fillText("100%", 2, pad + 4);
+    }
+
+
+    function applyData(data, details = []) {
+      if (!data) {
+        throw new Error("results 데이터가 없습니다");
+      }
+
+      document.getElementById("subtitle").textContent =
+        `${data.skill_name} 워크스페이스: .hyper/autoresearch-skill/${data.skill_name}/`;
+
+      document.getElementById("status-pill").textContent =
+        data.status === "running" ? `실험 ${data.current_experiment} 실행 중` :
+        data.status === "complete" ? "완료" :
+        "대기 중";
+      document.getElementById("baseline-score").textContent = toPercent(data.baseline_score);
+      const latest = (data.experiments || []).length
+        ? data.experiments[data.experiments.length - 1].pass_rate
+        : null;
+      document.getElementById("latest-pass-rate").textContent = toPercent(latest);
+      document.getElementById("best-score").textContent = toPercent(data.best_score);
+      document.getElementById("current-exp").textContent = data.current_experiment ?? 0;
+
+      renderScoreSummary(data);
+      renderExperiments(data.experiments || []);
+      renderBreakdown(data.eval_breakdown || []);
+      renderDetails(details);
+      renderChart(data.experiments || []);
+    }
+
+    async function loadGeneratedData() {
+      delete window.__AUTORESEARCH_RESULTS__;
+      delete window.__AUTORESEARCH_DETAILS__;
+      const previous = document.getElementById("generated-results");
+      if (previous) previous.remove();
+      await injectScript(`./results.js?ts=${Date.now()}`);
+      return {
+        results: window.__AUTORESEARCH_RESULTS__,
+        details: window.__AUTORESEARCH_DETAILS__ || []
+      };
+    }
+
+    async function refresh() {
+      if (window.location.protocol === "file:") {
+        const generated = await loadGeneratedData();
+        applyData(generated.results, generated.details);
+        return;
+      }
+
+      const [response, generated] = await Promise.all([
+        fetch("./results.json", { cache: "no-store" }),
+        loadGeneratedData().catch(() => ({ details: [] }))
+      ]);
+      const data = await response.json();
+      applyData(data, generated.details || []);
+    }
+
+    refresh().catch((error) => {
+      document.getElementById("subtitle").textContent = `결과를 불러오지 못했습니다: ${error.message}`;
+    });
+    setInterval(() => refresh().catch(() => {}), 10000);
+  </script>
+</body>
+</html>

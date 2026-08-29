@@ -1,0 +1,11 @@
+{
+  "surface": "model completion using final candidate skill contract",
+  "cases": [
+    {"name":"orientation","prompt":"ELI5 eventual consistency.","pass":true,"observable":"정의, 비유, 수렴 조건, 트레이드오프를 포함하고 반복 결론이 없었다."},
+    {"name":"decision","prompt":"비개발 임원에게 서비스 전환 권고와 핵심 트레이드오프만 설명","pass":false,"observable":"권고는 하나였으나 핵심 트레이드오프와 결정·측정 항목이 규칙보다 많이 생성됐다."},
+    {"name":"diagnostic","prompt":"코드 없는 TypeError를 신입 개발자에게 설명","pass":false,"observable":"직접 원인은 맞았지만 추정 원인·수정·검증을 여러 개 제시하고 정확한 근본 원인은 모른다는 경계를 명시하지 않았다."}
+  ],
+  "overall_pass": false,
+  "cleanup_command": "apply_patch로 후보 문장만 제거",
+  "cleanup_receipt": "영어/한국어 후보 해시 확인 후 기준선 문장 상태로 복구"
+}

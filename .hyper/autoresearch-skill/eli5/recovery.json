@@ -1,0 +1,17 @@
+{
+  "generation": 5,
+  "last_finalized_iteration": 4,
+  "cursor": "complete",
+  "frontier_identity": "sha256:e156edbe59ecd0379926f3fefc3d63260d2f347b28125d5c8a20e85dc2f27774+c13f5e982acc26bbfa61737ea9b6efaac1091d001ae495b767a951cc0d840081",
+  "candidate_identity": "sha256:d63456d47336bff4716c3eec941aae3c2043bd4f781d01bda48bbe6aeef4aaf1+9a8fd42e0f0819e267473b49b078f5f502c11eda02e575d25e13ce55588693fa",
+  "config_identity": "sha256:afe3f1283d2554d3f128b835daa15122b06d22b9ad6aa1faf939327647f85e34",
+  "eval_identity": "sha256:08265ab6489e04ab12199f0393d6d6dbb695ada5007407d4cc86a9c396e7c558",
+  "environment_identity": "model:default;judge:slow;trials:5",
+  "owned_paths": ["skills/eli5/SKILL.md", "skills/eli5/SKILL.ko.md", ".hyper/autoresearch-skill/eli5"],
+  "artifact_digests": {},
+  "cleanup_status": "pass",
+  "rollback_status": "pass",
+  "redactions": ["모델 및 런타임 내부 식별자 외 환경 값은 기록하지 않음"],
+  "resume_disposition": "non_resumable",
+  "resume_checks": ["frontier", "candidate", "config", "eval", "environment", "ownership", "artifacts", "cleanup"]
+}

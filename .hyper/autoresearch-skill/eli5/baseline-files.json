@@ -1,0 +1,11 @@
+{
+  "captured_at": "2026-08-29",
+  "scope_note": "이번 실행은 SKILL.md만 변이하며 나머지 파일은 비변이 가드 기준선으로 기록한다.",
+  "files": [
+    {"path":"skills/eli5/SKILL.md","sha256":"e156edbe59ecd0379926f3fefc3d63260d2f347b28125d5c8a20e85dc2f27774","size":13099,"owned_for_mutation":true},
+    {"path":"skills/eli5/SKILL.ko.md","sha256":"c13f5e982acc26bbfa61737ea9b6efaac1091d001ae495b767a951cc0d840081","size":12931,"owned_for_mutation":true,"note":"작업 시작 전 해시가 없었으므로 후보 문장을 apply_patch로 제거한 복구본을 최종 기준선 신원으로 기록"},
+    {"path":"skills/eli5/rules/explanation-method.md","sha256":"281f5ff041113335308994c535d8d9670fe7579c1736ad6a1172ebdf484ab373","size":6482,"owned_for_mutation":false},
+    {"path":"skills/eli5/rules/validation.md","sha256":"c34dbcfac7ee15862d57de1c86a804511f475e828a69370c08961d7ac95feac8","size":3881,"owned_for_mutation":false},
+    {"path":"skills/eli5/assets/evals/eli5-cases.jsonl","sha256":"7d0e6c9e8869a49bee66633d94ec7aaf222b1229b5bd621a873894cb5d4a3b25","size":14067,"owned_for_mutation":false}
+  ]
+}
