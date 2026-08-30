@@ -36,6 +36,9 @@ dist/
 .omc/
 .sisyphus/
 .hypercore/
+.hyper/
+.impeccable/
+.senpi/
 
 # Local agent instructions
 AGENTS.md

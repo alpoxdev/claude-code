@@ -1,37 +1,42 @@
 # Skill Test Matrix
 
-**Purpose**: 스킬을 신뢰하기 전에 무엇을 테스트해야 하는지 결정한다.
+**Purpose**: 대상 주장을 증명할 수 있는 가장 작고 빠른 테스트 집합을 고르고, 실제 위험이 요구할 때만 범위를 넓힌다.
 
-## Required dimensions
+## Risk selection
 
-| Dimension | What to test | Typical evidence |
+| Depth | Use when | Minimum gate |
 |---|---|---|
-| Trigger precision | 스킬을 활성화해야 하는 요청과 활성화하지 않아야 하는 요청 | Positive/negative prompt table |
-| Boundary routing | 이웃 스킬과 겹치는 요청 | Routing rationale |
-| Workflow completeness | 각 단계가 에이전트에게 다음 행동을 제공하는지 | Phase-by-phase simulation |
-| Resource integrity | 연결된 rules/references/scripts/assets가 존재하고 올바르게 배치되어 있는지 | Static file check |
-| Corpus integrity | top-level skill folders가 `SKILL.md`, metadata, Korean markdown pair, 해석 가능한 direct support links, balanced code fences를 갖는지 | `node skills/skill-tester/scripts/validate-skills-corpus.mjs --root skills --json` |
-| Validation strength | 완료에 근거가 필요한지 | Checklist/readback |
-| Edge resilience | 입력 누락, 잘못된 경로, localization, 충돌, 지원되지 않는 대상 | Edge scenario table |
-| Regression risk | 유사 스킬에서 온 알려졌거나 가능성 큰 실패 | Regression scenario |
+| `smoke` | 메타데이터 또는 한 가지 로컬 문구 변경 | 구조 검사와 3–5개 집중 케이스. |
+| `targeted` | 하나의 trigger, workflow, support link, 알려진 실패 변경 | smoke + 실패 케이스 + 이웃 boundary + 수정 후 재실행. |
+| `standard` | 실질적인 스킬 workflow 또는 resource 변경 | positive, negative, boundary, edge, workflow, regression 8–15개, 정적·한영 검사. |
+| `thorough` | tool use, source handling, delegation, deletion, runtime fallback, 넓은 동작 변경 | standard + trace, adversarial safety, capability-degradation, safe-deletion 검사. |
 
-## Minimum matrix
+파일 수가 아니라 주장 위험도로 고른다. 자격 증명, 운영, 파괴적, 외부 행동이 있는 대상은 high-stakes다. 명시적 사용자 허가와 적용 가능한 사람 관문 없이 부작용을 고치지 않는다.
 
-사용자가 더 작은 smoke test를 명시적으로 요청하지 않는 한 최소한 다음 케이스를 만든다:
+## Matrix dimensions
 
-- positive trigger 시나리오 3개.
-- negative trigger 시나리오 2개.
-- boundary 시나리오 2개.
-- edge-case 시나리오 2개.
-- regression 시나리오 1개.
+| Dimension | Test | Fast evidence |
+|---|---|---|
+| Trigger precision | 의도한 프롬프트와 명백히 무관한 프롬프트 | Positive/negative route 표. |
+| Boundary routing | 이웃 스킬과 혼합 의도 | Route 또는 handoff 근거. |
+| Contract | Intent, scope, authority, evidence, tools, loop, output, verification, stop | Section readback. |
+| Resource integrity | 직접 링크, Korean pair, fence, scripts, assets | 로컬 validator 출력. |
+| Workflow | 다음 행동, capability fallback, 실패 경로 | Phase simulation과 trace. |
+| Repair safety | edit ownership, reference-safe deletion, 바꾸지 않은 재검사 | Baseline/current 비교. |
+| Safety | retrieval injection과 결과적 행동 | Adversarial case와 permission trace. |
+| Regression | 알려졌거나 가능성 큰 이전 실패 | 바꾸지 않은 regression case. |
 
-## Severity guide
+## Coverage floor
 
-- `critical`: destructive 또는 high-risk 작업에 잘못된 스킬이 활성화되거나 필수 리소스가 없음.
-- `high`: 일반적인 대상 요청에 대해 핵심 trigger/workflow가 실패함.
-- `medium`: boundary behavior가 모호하지만 복구 가능함.
-- `low`: 즉각적인 오라우팅 없는 wording, maintainability, 또는 report quality 이슈.
+사용자가 smoke-only를 명시하지 않으면 positive 3개, negative 2개, boundary 2개, edge 2개, regression 1개를 포함한다. `standard`에는 workflow 또는 adversarial 하나를, `thorough`에는 둘 다 추가한다. 지역화 대상에는 파일 쌍 검사만이 아니라 동작상 동등한 한국어 시나리오가 하나 이상 필요하다.
+
+## Fast-path order
+
+1. 대상 경로를 검증하고 `SKILL.md`와 직접 링크를 읽는다.
+2. 넓은 corpus 검사 전에 좁은 정적 validator를 실행한다.
+3. 요청한 주장과 가장 가까운 실패 모드를 증명하는 케이스만 먼저 실행한다.
+4. 공유 계약, 여러 스킬, 선택한 위험도가 요구할 때만 corpus 또는 전체 매트릭스로 확장한다.
 
 ## Exit rule
 
-일반 positive 시나리오가 올바르게 라우팅되고, negative 시나리오가 범위 밖에 머물며, support files가 해석되고, 워크플로가 validation evidence 없이 완료를 주장할 수 없을 때만 스킬은 통과한다. 여러 스킬 또는 family lane 변경에는 전체 root 또는 정확한 `--only` subset에 대한 corpus validation도 필요하다.
+모든 중요한 route, resource, safety 케이스에 근거가 있을 때만 통과한다. 수정은 변경 후 같은 영향 케이스를 다시 실행할 때만 통과한다. 더 깔끔해 보이는 core나 바뀐 테스트 집합은 근거가 아니다.

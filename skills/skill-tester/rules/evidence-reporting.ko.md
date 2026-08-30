@@ -1,52 +1,44 @@
 # Evidence Reporting
 
-**Purpose**: 스킬 테스트 결과를 실행 가능하고, 재현 가능하며, 쉽게 handoff할 수 있게 만든다.
+**Purpose**: 테스트와 수정 결과를 재현 가능하고, 결정 가능하며, 실행하지 못한 검사를 정직하게 드러내게 한다.
 
 ## Verdicts
 
-- `pass`: 필수 시나리오가 통과했고 고위험 공백이 남아 있지 않다.
-- `pass-with-risks`: 핵심 동작은 작동하지만 중간/낮은 위험 또는 미테스트 영역이 남아 있다.
-- `fail`: 일반적인 대상 요청이 실패하거나, 잘못된 요청이 활성화되거나, 필수 리소스가 깨졌거나, 검증이 빠져 있다.
+- `ship`: 모든 중요 관문이 통과했고 실질적 caveat가 남지 않았다.
+- `caveated ship`: 중요 관문은 통과했지만, 이름을 명시한 비중요 또는 실행 불가 검사가 남았다.
+- `iterate`: 허가되고 범위 안인 다음 수정이 명확하지만 현재 결과는 통과하지 않는다.
+- `block`: 대상, authority, ownership, permission, 필수 capability 때문에 신뢰할 수 있는 결과를 만들 수 없다.
+
+정적 구조가 유효하다는 이유만으로 결과를 `pass`라고 부르지 않는다.
+
+## Claim chain
+
+각 결론은 다음을 기록한다:
+
+| Claim | Risk | Evidence | Verification | Result | Caveat |
+|---|---|---|---|---|---|
+| Trigger rejects app QA | targeted | Scenario N2와 routing rule | Scenario observation | pass | 해당하면 classifier runtime 미실행 |
+
+baseline과 current 근거를 분리한다. 수정이 없었으면 꾸며 낸 비교 대신 current를 `not applicable`으로 표시한다.
 
 ## Finding format
 
-각 이슈에는 이 형태를 사용한다:
-
 ```markdown
-- **[severity] [taxonomy] Title**
-  - Evidence: `path:section` or command output summary.
-  - Impact: why this can misroute or mis-execute the skill.
-  - Minimal fix: smallest safe edit or handoff.
+- **[critical|high|medium|low] [taxonomy] Title**
+  - Evidence: `path:section`, scenario ID, or inspected command output.
+  - Impact: concrete routing, execution, safety, or maintenance consequence.
+  - Repair / handoff: smallest authorized next action.
+  - Recheck: exact post-repair command or unchanged scenario.
 ```
 
-## Evidence standards
+unsafe behavior, 필수 resource 손실, 거짓 pass에는 `critical`, 일반 경로 trigger/workflow 실패에는 `high`, 복구 가능한 scope/edge 모호성에는 `medium`, 비차단 문구/유지보수 문제에는 `low`를 사용한다.
 
-강한 근거에는 다음이 포함된다:
+## Trace and command evidence
 
-- `SKILL.md`에서 직접 읽은 metadata와 trigger wording
-- 스킬에 선언되어 있고 디스크에서 확인된 링크
-- 기대 동작과 관찰 동작이 있는 시나리오 표
-- 결정적 스크립트 출력
-- `ok`, `totalTopLevelSkills`, `selectedCount`, `checkedCount`, `summary`, `skills`, `errors`를 포함한 corpus validator JSON
-- 정적 검사에 대한 명령 출력
+tool, repair, deletion, retrieval, delegation 동작에는 편집 전 읽은 파일, 명령과 정규화된 대상 경로, editable ownership, source boundary, side-effect gate, fallback, 한국어와 영어의 동작 동등성, 수정 후 재실행 같은 관련 trace assertion을 기록한다. validator를 실행했으면 명령 exit code와 확인한 JSON 필드를 포함한다.
 
-약한 근거에는 다음이 포함된다:
+실행 검사가 불가능하면 이유, 다음으로 좋은 검사, 구체 위험을 쓴다. 실행하지 않은 명령, 서브에이전트 주장, 문서 readback을 부족한 근거 대신 쓰지 않는다.
 
-- 시나리오 없이 "looks fine"이라고 하는 것
-- 파일 참조 없는 광범위한 의견
-- 연결된 리소스를 확인하지 않은 통과 주장
+## Handoff
 
-## Handoff rules
-
-- 구조 편집, 트리거 재작성, 리소스 배치 수정은 `skill-maker`에 handoff한다.
-- 사용자가 반복 벤치마크 실험이나 점수 기반 mutation을 원하면 `autoresearch-skill`에 handoff한다.
-- 테스트 대상이 스킬이 아니라 애플리케이션이면 app QA skills에 handoff한다.
-
-## Final report checklist
-
-- 대상과 verdict를 먼저 말한다.
-- 추천보다 먼저 시나리오 결과를 보여준다.
-- 스킬의 failure taxonomy를 사용해 실패를 분류한다.
-- 실행한 명령과 검사한 파일을 명명한다.
-- team 또는 multi-skill 작업이면 정확한 `validate-skills-corpus.mjs` 명령, exit code, stdout/stderr artifact path를 포함한다.
-- 전체 커버리지를 암시하지 말고 미테스트 영역을 명시적으로 명명한다.
+새 스킬 또는 구조 재설계는 `skill-maker`로, 제한된 점수 최적화는 `autoresearch-skill`로, 애플리케이션 동작은 application QA workflow로 넘긴다. 구조 리팩터링에는 `rules/skill-maker-handoff.md`를 사용하며 대상, baseline, 실패 시나리오, 수정 경로, 미검증 위험, ownership, 리팩터링 후 verifier를 담는다. 받는 스킬의 주장만으로 검증을 끝내지 않는다.

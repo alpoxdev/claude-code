@@ -1,52 +1,44 @@
 # Evidence Reporting
 
-**Purpose**: Make skill test results actionable, reproducible, and easy to hand off.
+**Purpose**: make test and repair results reproducible, decision-ready, and honest about what did not run.
 
 ## Verdicts
 
-- `pass`: required scenarios passed and no high-risk gaps remain.
-- `pass-with-risks`: core behavior works, but medium/low risks or untested areas remain.
-- `fail`: normal target requests fail, wrong requests activate, required resources are broken, or validation is missing.
+- `ship`: all critical gates passed and no material caveat remains.
+- `caveated ship`: critical gates passed, but a named non-critical or unavailable check remains.
+- `iterate`: an authorized, in-scope next repair is clear, but the current result does not pass.
+- `block`: target, authority, ownership, permission, or a required capability prevents a trustworthy result.
+
+Never call a result `pass` merely because the static structure is valid.
+
+## Claim chain
+
+For each conclusion, record:
+
+| Claim | Risk | Evidence | Verification | Result | Caveat |
+|---|---|---|---|---|---|
+| Trigger rejects app QA | targeted | Scenario N2 and routing rule | Scenario observation | pass | Classifier runtime not executed, if applicable |
+
+Keep baseline and current evidence separate. If no repair occurred, mark current as `not applicable` rather than presenting a fictional comparison.
 
 ## Finding format
 
-Use this shape for each issue:
-
 ```markdown
-- **[severity] [taxonomy] Title**
-  - Evidence: `path:section` or command output summary.
-  - Impact: why this can misroute or mis-execute the skill.
-  - Minimal fix: smallest safe edit or handoff.
+- **[critical|high|medium|low] [taxonomy] Title**
+  - Evidence: `path:section`, scenario ID, or inspected command output.
+  - Impact: concrete routing, execution, safety, or maintenance consequence.
+  - Repair / handoff: smallest authorized next action.
+  - Recheck: exact post-repair command or unchanged scenario.
 ```
 
-## Evidence standards
+Use `critical` for unsafe behavior, lost required resources, or a false pass; `high` for normal-path trigger or workflow failure; `medium` for recoverable scope or edge ambiguity; `low` for non-blocking wording or maintainability.
 
-Strong evidence includes:
+## Trace and command evidence
 
-- metadata and trigger wording read directly from `SKILL.md`
-- links declared in the skill and confirmed on disk
-- scenario table with expected vs observed behavior
-- deterministic script output
-- corpus validator JSON, including `ok`, `totalTopLevelSkills`, `selectedCount`, `checkedCount`, `summary`, `skills`, and `errors`
-- command output for static checks
+For tool, repair, deletion, retrieval, or delegation behavior, record relevant trace assertions: files read before edit, command and normalized target path, editable ownership, source boundary, side-effect gate, fallback, Korean and English behavioral parity, and post-repair rerun. Include command exit code and inspected JSON fields when a validator ran.
 
-Weak evidence includes:
+If an executable check cannot run, state why, the next-best check, and the concrete risk. Do not substitute an unrun command, a subagent claim, or prose readback for the missing evidence.
 
-- "looks fine" without scenarios
-- broad opinions without file references
-- pass claims without checking linked resources
+## Handoff
 
-## Handoff rules
-
-- Hand off to `skill-maker` for structural edits, trigger rewrites, or resource placement fixes.
-- Hand off to `autoresearch-skill` when the user wants repeated benchmark experiments or score-driven mutation.
-- Hand off to app QA skills when the target under test is an application, not a skill.
-
-## Final report checklist
-
-- State the target and verdict first.
-- Show scenario results before recommendations.
-- Classify failures using the skill's failure taxonomy.
-- Name commands run and files inspected.
-- For team or multi-skill work, include the exact `validate-skills-corpus.mjs` command, exit code, and stdout/stderr artifact paths.
-- Name untested areas explicitly instead of implying full coverage.
+Hand to `skill-maker` for new or structurally redesigned skill packages, `autoresearch-skill` for bounded score optimization, and an application QA workflow for application behavior. Use `rules/skill-maker-handoff.md` for a structural refactor: it carries the target, baseline, failed scenarios, modified paths, untested risks, ownership, and exact post-refactor verifier. Do not treat the receiving skill's claim as verification.

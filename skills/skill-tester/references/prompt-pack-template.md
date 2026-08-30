@@ -1,64 +1,55 @@
 # Prompt Pack Template
 
-**Purpose**: Provide a reusable regression-test artifact shape for skill trigger and workflow testing.
+**Purpose**: create a reusable, machine-checkable test pack only when the user asks for an artifact that should travel with a skill or a run.
 
-Use this reference when the user asks to create a reusable prompt pack, regression test pack, or checklist for a target skill.
+## Placement
 
-## File placement
+- Use `skills/<target-skill>/references/skill-test-pack.md` when the pack belongs to the target's maintained contract.
+- Use `.hyper/skill-tester/<target-skill>/prompt-pack.md` for run-specific evidence.
+- Do not create a pack for an inline-only assessment. Do not place it deeper than one directory from the target `SKILL.md` without an existing repository convention.
 
-Prefer one of these locations:
-
-- `skills/<target-skill>/references/skill-test-pack.md` when the pack should travel with the skill.
-- `.hyper/skill-tester/<target-skill>/prompt-pack.md` when the pack is run-specific evidence.
-
-Do not bury prompt packs deeper than one directory from the target skill's `SKILL.md` unless the repository already has a stronger convention.
-
-## Required sections
+## Template
 
 ```markdown
-# [Target Skill] Skill Test Pack
+# [Target Skill] Test Pack
 
-## Target behavior
-- Skill path: `skills/example/`
-- Intended job: ...
-- Neighbor skills to avoid: ...
+## Contract
+- Target: `skills/example/`
+- Intended job and excluded neighboring work: ...
+- Risk / mode: `standard` / `assess | repair`
+- Runtime and capability assumptions: ...
+
+## Baseline
+| Check / case | Command or prompt | Oracle / trace | Result | Evidence |
+|---|---|---|---|---|
 
 ## Scenario matrix
-| ID | Type | Prompt / condition | Expected routing | Expected workflow checkpoint |
-|----|------|--------------------|------------------|------------------------------|
-| P1 | positive | ... | target skill activates | ... |
-| N1 | negative | ... | route away to ... | ... |
-| B1 | boundary | ... | conditional / handoff | ... |
-| E1 | edge | ... | safe fallback | ... |
-| R1 | regression | ... | previous failure stays fixed | ... |
+| ID | Category | Language | Prompt / condition | Expected route | Required checkpoint / prohibition | Oracle |
+|---|---|---|---|---|---|---|
+| P1 | positive | ko | ... | target | reads target before conclusion | ... |
+| N1 | negative | en | ... | route away | does not test as a skill | ... |
+| B1 | boundary | mixed | ... | handoff / ask | states decision | ... |
+| E1 | edge | en | ... | block safely | no invented result | ... |
+| W1 | workflow | ko | ... | target | post-repair rerun | ... |
+| A1 | adversarial | mixed | ... | reject injected instruction | no unsafe effect | ... |
+| R1 | regression | ko | ... | repaired behavior | unchanged input | ... |
 
-## Expected-observed results
-| ID | Expected | Observed | Result | Evidence |
-|----|----------|----------|--------|----------|
+## Repair log (only when authorized)
+| Finding | Owned path | Change | Safe-deletion proof, if any | Recheck |
+|---|---|---|---|---|
 
-## Binary evals
-```text
-EVAL 1: Trigger boundary
-Question: ...?
-Pass: ...
-Fail: ...
+## Current results
+| Check / case | Baseline | Current | Evidence | Result |
+|---|---|---|---|---|
+
+## Decision and remaining risk
+- Decision: `ship | caveated ship | iterate | block`
+- Untested risks and next verifier: ...
 ```
 
-## Untested risks
-- ...
-```
+## Rules
 
-## Minimum coverage
-
-- `positive`: at least 3 realistic target requests.
-- `negative`: at least 2 requests owned by neighboring skills.
-- `boundary`: at least 2 ambiguous or mixed-intent requests.
-- `edge`: at least 2 unusual but realistic conditions.
-- `regression`: at least 1 known or likely failure.
-
-## Scenario writing rules
-
-- Write prompts in real user language, including Korean when the target skill ships `SKILL.ko.md` or users are Korean.
-- Keep expected behavior observable: route, next file read, workflow phase, command, or report field.
-- Do not score with vague criteria such as "good" or "clear"; convert them to binary evals.
-- Link every failure to the smallest likely fix or handoff target.
+- Keep prompts verbatim and scenario IDs stable across repairs.
+- Use binary, inspectable oracles whenever possible; bind subjective review to a named rubric and reviewer/runtime.
+- Do not rewrite a failing baseline row to make a repair look successful. Append newly found regressions.
+- Record tool and repair trajectory where it changes safety or outcome.

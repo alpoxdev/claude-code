@@ -1,64 +1,55 @@
 # Prompt Pack Template
 
-**Purpose**: 스킬 트리거와 워크플로 테스트를 위한 재사용 가능한 회귀 테스트 산출물 형태를 제공한다.
+**Purpose**: 스킬 또는 실행 결과와 함께 이동해야 하는 산출물을 사용자가 요청했을 때만, 재사용 가능하고 기계 검사 가능한 테스트 팩을 만든다.
 
-사용자가 대상 스킬에 대한 재사용 가능한 프롬프트 팩, 회귀 테스트 팩, 또는 체크리스트 생성을 요청할 때 이 참고 자료를 사용한다.
+## Placement
 
-## File placement
+- 팩이 대상의 유지되는 계약에 속하면 `skills/<target-skill>/references/skill-test-pack.md`를 사용한다.
+- 실행별 근거에는 `.hyper/skill-tester/<target-skill>/prompt-pack.md`를 사용한다.
+- inline-only 평가에는 팩을 만들지 않는다. 기존 저장소 관례가 없다면 대상 `SKILL.md`에서 한 디렉터리보다 깊게 배치하지 않는다.
 
-다음 위치 중 하나를 선호한다:
-
-- 팩이 스킬과 함께 이동해야 할 때는 `skills/<target-skill>/references/skill-test-pack.md`.
-- 팩이 실행별 근거일 때는 `.hyper/skill-tester/<target-skill>/prompt-pack.md`.
-
-저장소에 더 강한 관례가 이미 있지 않다면, 프롬프트 팩을 대상 스킬의 `SKILL.md`에서 한 디렉터리보다 더 깊이 묻지 않는다.
-
-## Required sections
+## Template
 
 ```markdown
-# [Target Skill] Skill Test Pack
+# [Target Skill] Test Pack
 
-## Target behavior
-- Skill path: `skills/example/`
-- Intended job: ...
-- Neighbor skills to avoid: ...
+## Contract
+- Target: `skills/example/`
+- Intended job and excluded neighboring work: ...
+- Risk / mode: `standard` / `assess | repair`
+- Runtime and capability assumptions: ...
+
+## Baseline
+| Check / case | Command or prompt | Oracle / trace | Result | Evidence |
+|---|---|---|---|---|
 
 ## Scenario matrix
-| ID | Type | Prompt / condition | Expected routing | Expected workflow checkpoint |
-|----|------|--------------------|------------------|------------------------------|
-| P1 | positive | ... | target skill activates | ... |
-| N1 | negative | ... | route away to ... | ... |
-| B1 | boundary | ... | conditional / handoff | ... |
-| E1 | edge | ... | safe fallback | ... |
-| R1 | regression | ... | previous failure stays fixed | ... |
+| ID | Category | Language | Prompt / condition | Expected route | Required checkpoint / prohibition | Oracle |
+|---|---|---|---|---|---|---|
+| P1 | positive | ko | ... | target | reads target before conclusion | ... |
+| N1 | negative | en | ... | route away | does not test as a skill | ... |
+| B1 | boundary | mixed | ... | handoff / ask | states decision | ... |
+| E1 | edge | en | block safely | no invented result | ... |
+| W1 | workflow | ko | ... | target | post-repair rerun | ... |
+| A1 | adversarial | mixed | ... | reject injected instruction | no unsafe effect | ... |
+| R1 | regression | ko | ... | repaired behavior | unchanged input | ... |
 
-## Expected-observed results
-| ID | Expected | Observed | Result | Evidence |
-|----|----------|----------|--------|----------|
+## Repair log (only when authorized)
+| Finding | Owned path | Change | Safe-deletion proof, if any | Recheck |
+|---|---|---|---|---|
 
-## Binary evals
-```text
-EVAL 1: Trigger boundary
-Question: ...?
-Pass: ...
-Fail: ...
+## Current results
+| Check / case | Baseline | Current | Evidence | Result |
+|---|---|---|---|---|
+
+## Decision and remaining risk
+- Decision: `ship | caveated ship | iterate | block`
+- Untested risks and next verifier: ...
 ```
 
-## Untested risks
-- ...
-```
+## Rules
 
-## Minimum coverage
-
-- `positive`: 현실적인 대상 요청을 최소 3개.
-- `negative`: 이웃 스킬이 소유하는 요청을 최소 2개.
-- `boundary`: 모호하거나 혼합 의도인 요청을 최소 2개.
-- `edge`: 특이하지만 현실적인 조건을 최소 2개.
-- `regression`: 알려졌거나 가능성이 큰 실패를 최소 1개.
-
-## Scenario writing rules
-
-- 대상 스킬이 `SKILL.ko.md`를 제공하거나 사용자가 한국어를 쓸 때는 한국어를 포함하여 실제 사용자 언어로 프롬프트를 작성한다.
-- 기대 동작은 관찰 가능하게 유지한다: 라우팅, 다음으로 읽을 파일, 워크플로 단계, 명령, 또는 보고서 필드.
-- "good" 또는 "clear" 같은 모호한 기준으로 점수화하지 말고 binary eval로 변환한다.
-- 모든 실패를 가장 작은 가능성 있는 수정 또는 handoff 대상에 연결한다.
+- 프롬프트 원문과 scenario ID는 수정 사이에도 안정적으로 유지한다.
+- 가능한 경우 binary이고 검사 가능한 oracle을 사용하며, 주관적 리뷰는 이름 있는 rubric과 reviewer/runtime에 묶는다.
+- 수정이 성공한 것처럼 보이도록 실패 baseline 행을 다시 쓰지 않는다. 새로 찾은 regression은 추가한다.
+- 안전 또는 결과가 바뀌는 경우 tool과 repair trajectory를 기록한다.

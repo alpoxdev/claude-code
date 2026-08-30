@@ -1,51 +1,60 @@
 # Scenario Design
 
-**Purpose**: 트리거, 워크플로, edge-case 실패를 드러내는 현실적인 스킬 테스트 케이스를 작성한다.
+**Purpose**: 실제 요청과 실패 조건을 빠르고 관찰 가능한 스킬 평가로 바꾼다.
 
-## Scenario types
+## Required scenario fields
 
-- `positive`: 대상 스킬이 소유해야 하는 요청.
-- `negative`: 이웃 스킬이나 일반 워크플로가 대신 소유해야 하는 요청.
-- `boundary`: 스킬 범위의 경계 근처에 있는 그럴듯한 요청.
-- `edge`: 입력 누락, 깨진 경로, 지원되지 않는 언어, 충돌하는 제약, 부재한 도구처럼 특이하지만 현실적인 조건.
-- `regression`: 이전 변경, 유사 스킬, 또는 현재 약한 표현에서 온 알려졌거나 가능성 큰 실패.
+모든 시나리오는 다음을 기록한다:
 
-## Good scenario prompts
+1. `id`, `category`, `language`, `risk`, 사용자 의도.
+2. 원문 프롬프트 또는 구체 조건과 실행 시 제공된 파일·소스만.
+3. 기대 route, 다음 checkpoint, 필수 동작(`must`), 금지 동작(`mustNot`).
+4. 관찰 가능한 oracle: 명령 exit, 파일·링크 상태, 필수 리포트 필드, route 결정, trace assertion.
+5. 관찰 결과, 근거 위치, `pass`, `fail`, `risk` 중 하나.
 
-좋은 프롬프트는 테스트 라벨이 아니라 실제 사용자가 쓸 법한 문장으로 작성된다.
+`positive`, `negative`, `boundary`, `edge`, `workflow`, `adversarial`, `regression` 카테고리를 사용한다. 원래 baseline 행을 바꾸지 않고, 발견한 실패마다 새 행을 추가한다.
 
-Prefer:
+## Writing rules
 
-```text
-$skill-maker Create a skill for testing browser automation prompts, with edge cases.
+- "positive trigger test" 같은 라벨이 아니라 실제 사용자가 말하는 문장으로 쓰며, 지역화 대상에는 한국어를 포함한다.
+- 시나리오 하나는 주요 동작 하나만 테스트한다. 한 oracle로 두 동작을 판정할 수 없으면 혼합 요청을 분리한다.
+- boundary 케이스에는 품질 인상이 아니라 기대 결정(`target`, `handoff`, `ask`, `block`)을 쓴다.
+- 파일 누락, 잘못된 경로, 도구 부재, 충돌 지시, 안전하지 않은 요청은 명시적 fallback, caveat, 질문, block을 기대해야 하며 성공을 지어내면 안 된다.
+- tool, retrieval, delegation, repair, deletion 동작에는 `read_before_edit`, `no_unauthorized_effect`, `source_guard`, `ownership_declared`, `post_repair_rerun` 같은 trace assertion을 추가한다.
+
+## JSONL fixture contract
+
+재사용 케이스는 `assets/evals/<skill>-cases.jsonl`에 한 줄당 JSON 객체 하나로 저장한다. 패키지 validator는 다음을 요구한다:
+
+```json
+{
+  "id": "unique-kebab-case-id",
+  "category": "positive",
+  "language": "en",
+  "risk": "targeted",
+  "intent": "Validate a named behavior",
+  "shouldTrigger": true,
+  "context": { "files": ["skills/example/SKILL.md"], "sources": [] },
+  "prompt": "Test this skill before release.",
+  "expected": {
+    "must": ["inspect target"],
+    "mustNot": ["claim without evidence"]
+  },
+  "metrics": ["triggerability", "completion"]
+}
 ```
 
-Avoid:
+`shouldTrigger`는 `positive`, `negative`, `boundary`에만 필요하며 `true`, `false`, `"depends"`만 허용한다. 허용값은 category `positive|negative|boundary|edge|workflow|adversarial|regression`, language `en|ko|mixed`, risk `smoke|targeted|standard|thorough|high-stakes`다.
 
-```text
-Positive trigger for skill creation.
-```
+## Scenario-to-gate map
 
-## Expected-observed format
+| Category | Minimum oracle |
+|---|---|
+| positive / negative | 올바른 activation 또는 route away. |
+| boundary | 명시적 target, handoff, ask, block 결정. |
+| edge | 누락, 잘못된, 사용 불가 컨텍스트의 정직한 처리. |
+| workflow | 필요한 단계·도구 순서와 수정 후 검사. |
+| adversarial | 검색된 지시를 무시하고 안전하지 않은 행동이 없음. |
+| regression | 같은 baseline 입력이 고쳐진 동작을 유지. |
 
-각 시나리오는 다음을 정의해야 한다:
-
-1. 프롬프트 또는 조건.
-2. 기대 라우팅 또는 워크플로 동작.
-3. 검사, 시뮬레이션, 또는 실제 실행에서 관찰된 동작.
-4. 결과: `pass`, `fail`, 또는 `risk`.
-5. 근거: 파일, 줄, 명령 출력, 또는 reasoning summary.
-
-## Edge-case prompts to consider
-
-- 대상 경로 누락: 첨부나 경로 없이 "Test this skill".
-- 잘못된 경로: 대상 디렉터리는 있지만 `SKILL.md`가 없음.
-- 충돌하는 의도: "Test this skill and rewrite it completely."
-- Localization: 한국어 또는 다른 지원 언어로 같은 동작을 요청.
-- 이웃 스킬 중복: 요청이 skill creation, skill testing, skill optimization 중 하나와 맞을 수 있음.
-- 리소스 실패: `@rules/foo.md`가 연결되어 있지만 없음.
-- 검증 공백: 워크플로가 명령 또는 readback 근거 없이 성공 보고를 허용함.
-
-## Localization
-
-스킬에 localized metadata나 examples가 있다면 해당 언어의 시나리오를 포함한다. 저장소가 번역된 `SKILL.*.md` 파일을 지원할 때 English-only trigger behavior를 가정하지 않는다.
+자체 작성 서술만으로 판정하지 않는다. 결정적 검사를 우선하고, 의미를 이진화할 수 없을 때만 rubric을 사용하며 rubric과 reviewer/runtime을 기록한다.

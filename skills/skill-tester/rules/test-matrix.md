@@ -1,37 +1,42 @@
 # Skill Test Matrix
 
-**Purpose**: Decide what must be tested before a skill can be trusted.
+**Purpose**: select the smallest fast test set that can prove the target claim, then expand only for the actual risk.
 
-## Required dimensions
+## Risk selection
 
-| Dimension | What to test | Typical evidence |
+| Depth | Use when | Minimum gate |
 |---|---|---|
-| Trigger precision | Requests that should and should not activate the skill | Positive/negative prompt table |
-| Boundary routing | Requests that overlap neighboring skills | Routing rationale |
-| Workflow completeness | Whether each phase gives the agent a next action | Phase-by-phase simulation |
-| Resource integrity | Linked rules/references/scripts/assets exist and are placed correctly | Static file check |
-| Corpus integrity | Top-level skill folders have `SKILL.md`, metadata, paired Korean markdown, resolvable direct support links, and balanced code fences | `node skills/skill-tester/scripts/validate-skills-corpus.mjs --root skills --json` |
-| Validation strength | Whether completion requires evidence | Checklist/readback |
-| Edge resilience | Missing inputs, malformed paths, localization, conflicts, and unsupported targets | Edge scenario table |
-| Regression risk | Known or likely failures from similar skills | Regression scenario |
+| `smoke` | Metadata or one local wording change | Structure plus 3–5 focused cases. |
+| `targeted` | One trigger, workflow, support-link, or known-failure change | Smoke plus the failure, one neighbor boundary, and post-repair rerun. |
+| `standard` | A material skill workflow or resource change | 8–15 positive, negative, boundary, edge, workflow, and regression cases; static and bilingual checks. |
+| `thorough` | Tool use, source handling, delegation, deletion, runtime fallback, or broad behavior | Standard plus trace, adversarial safety, capability-degradation, and safe-deletion checks. |
 
-## Minimum matrix
+Choose from claim risk, not file count. A target with credentials, production, destructive, or external actions is high-stakes: do not repair side effects without explicit user permission and an applicable human gate.
 
-Create at least these cases unless the user explicitly asks for a smaller smoke test:
+## Matrix dimensions
 
-- 3 positive trigger scenarios.
-- 2 negative trigger scenarios.
-- 2 boundary scenarios.
-- 2 edge-case scenarios.
-- 1 regression scenario.
+| Dimension | Test | Fast evidence |
+|---|---|---|
+| Trigger precision | Intended and clearly unrelated prompts | Positive/negative route table. |
+| Boundary routing | Neighboring skills and mixed intents | Route or handoff rationale. |
+| Contract | Intent, scope, authority, evidence, tools, loop, output, verification, stop | Section readback. |
+| Resource integrity | Direct links, Korean pairs, fences, scripts, assets | Local validator output. |
+| Workflow | Next action, capability fallback, and failure path | Phase simulation and trace. |
+| Repair safety | Edit ownership, reference-safe deletion, unchanged recheck | Baseline/current comparison. |
+| Safety | Retrieval injection and consequential actions | Adversarial case and permission trace. |
+| Regression | Known or likely prior failure | Unchanged regression case. |
 
-## Severity guide
+## Coverage floor
 
-- `critical`: wrong skill activates for destructive or high-risk work, or required resources are missing.
-- `high`: core trigger/workflow fails for normal target requests.
-- `medium`: boundary behavior is ambiguous but recoverable.
-- `low`: wording, maintainability, or report quality issue without immediate misrouting.
+Unless the user explicitly requests smoke-only work, include three positive, two negative, two boundary, two edge, and one regression case. Add one workflow or adversarial case at `standard`; add both at `thorough`. Localized targets require at least one behaviorally equivalent Korean scenario, not merely a file-pair check.
+
+## Fast-path order
+
+1. Validate the target path and read `SKILL.md` plus direct links.
+2. Run the narrow static validator before broad corpus validation.
+3. Exercise only the cases that prove the requested claim and its closest failure mode.
+4. Expand to the corpus or full matrix only when shared contracts, multiple skills, or the chosen risk depth require it.
 
 ## Exit rule
 
-A skill passes only when normal positive scenarios route correctly, negative scenarios stay out of scope, support files resolve, and the workflow cannot plausibly claim completion without validation evidence. A multi-skill or family-lane change also needs corpus validation, either the whole root or a precise `--only` subset.
+Pass only when every critical route, resource, and safety case has evidence. A repair passes only when the same affected cases are re-run after the change; a cleaner-looking core or a changed test set is not evidence.
