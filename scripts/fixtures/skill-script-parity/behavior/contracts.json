@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "requiredBy": "scripts/fixtures/skill-script-parity/manifest.json",
   "coverage": {
-    "expectedRows": 32,
+    "expectedRows": 35,
     "legacyOriginCounts": {
       "former-sh": 19,
       "former-py": 1,
       "retained-mjs": 9,
-      "authored-mjs": 3
+      "authored-mjs": 6
     },
     "requiredDimensions": [
       "stdout",
@@ -24,7 +24,7 @@
       "malformed",
       "familyEdge"
     ],
-    "expectedFixtures": 96
+    "expectedFixtures": 105
   },
   "rows": [
     {
@@ -8422,6 +8422,153 @@
         "cwd": "vite-architecture--validate-vite-architecture-skill--cwd",
         "env": "vite-architecture--validate-vite-architecture-skill--env",
         "argv": "vite-architecture--validate-vite-architecture-skill--argv"
+      }
+    },
+    {
+      "id": "orca-orchestration--check-runtime-capabilities",
+      "path": "skills/orca-orchestration/scripts/check-runtime-capabilities.mjs",
+      "family": "orca-orchestration",
+      "legacyOrigin": "authored-mjs",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/orca-orchestration/scripts/check-runtime-capabilities.mjs",
+          "absent": true
+        }
+      },
+      "dimensions": {
+        "stdout": true,
+        "stderr": true,
+        "exit": true,
+        "files": true,
+        "modes": true,
+        "cwd": true,
+        "env": true,
+        "argv": true
+      },
+      "fixtures": {
+        "happy": {
+          "scenario": "happy",
+          "command": { "executable": "bun", "arguments": ["skills/orca-orchestration/scripts/check-runtime-capabilities.mjs"] },
+          "input": { "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--help"], "files": [] },
+          "expected": {
+            "stdout": { "equals": "Usage: bun scripts/check-runtime-capabilities.mjs [--check-orca-status] [--json]\n\nRuns bounded read-only version/help probes for Orca, OMO, and GJC. It never runs auth\ncommands, prints credentials, creates terminals, or sends prompts. --check-orca-status adds\nan informational live runtime readiness probe that becomes required when explicitly selected.\n" },
+            "stderr": { "equals": "" },
+            "exit": 0,
+            "files": [],
+            "modes": {},
+            "cwd": "isolated-temp-tree",
+            "env": { "NO_COLOR": "1" },
+            "argv": ["--help"]
+          }
+        },
+        "malformed": {
+          "scenario": "malformed",
+          "command": { "executable": "bun", "arguments": ["skills/orca-orchestration/scripts/check-runtime-capabilities.mjs"] },
+          "input": { "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--bogus"], "files": [] },
+          "expected": { "stdout": { "equals": "" }, "stderr": { "equals": "Unknown argument: --bogus\n" }, "exit": 2, "files": [], "modes": {}, "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--bogus"] }
+        },
+        "familyEdge": {
+          "scenario": "familyEdge",
+          "command": { "executable": "bun", "arguments": ["skills/orca-orchestration/scripts/check-runtime-capabilities.mjs"] },
+          "input": { "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["-h"], "files": [] },
+          "expected": {
+            "stdout": { "equals": "Usage: bun scripts/check-runtime-capabilities.mjs [--check-orca-status] [--json]\n\nRuns bounded read-only version/help probes for Orca, OMO, and GJC. It never runs auth\ncommands, prints credentials, creates terminals, or sends prompts. --check-orca-status adds\nan informational live runtime readiness probe that becomes required when explicitly selected.\n" },
+            "stderr": { "equals": "" },
+            "exit": 0,
+            "files": [],
+            "modes": {},
+            "cwd": "isolated-temp-tree",
+            "env": { "NO_COLOR": "1" },
+            "argv": ["-h"]
+          }
+        }
+      }
+    },
+    {
+      "id": "orca-orchestration--validate-orca-orchestration",
+      "path": "skills/orca-orchestration/scripts/validate-orca-orchestration.mjs",
+      "family": "orca-orchestration",
+      "legacyOrigin": "authored-mjs",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/orca-orchestration/scripts/validate-orca-orchestration.mjs",
+          "absent": true
+        }
+      },
+      "dimensions": { "stdout": true, "stderr": true, "exit": true, "files": true, "modes": true, "cwd": true, "env": true, "argv": true },
+      "fixtures": {
+        "happy": {
+          "scenario": "happy",
+          "command": { "executable": "bun", "arguments": ["skills/orca-orchestration/scripts/validate-orca-orchestration.mjs"] },
+          "input": { "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--help"], "files": [] },
+          "expected": {
+            "stdout": { "equals": "Usage: bun scripts/validate-orca-orchestration.mjs [--root <path>] [--evals <path>] [--json]\n\nValidates the orca-orchestration package contract, bilingual resources, links, source dates,\nand JSONL eval fixture. Empty fixtures are rejected with the single diagnostic evals_empty.\n" },
+            "stderr": { "equals": "" },
+            "exit": 0,
+            "files": [],
+            "modes": {},
+            "cwd": "isolated-temp-tree",
+            "env": { "NO_COLOR": "1" },
+            "argv": ["--help"]
+          }
+        },
+        "malformed": {
+          "scenario": "malformed",
+          "command": { "executable": "bun", "arguments": ["skills/orca-orchestration/scripts/validate-orca-orchestration.mjs"] },
+          "input": { "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--bogus"], "files": [] },
+          "expected": { "stdout": { "equals": "" }, "stderr": { "equals": "Unknown argument: --bogus\n" }, "exit": 2, "files": [], "modes": {}, "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--bogus"] }
+        },
+        "familyEdge": {
+          "scenario": "familyEdge",
+          "command": { "executable": "bun", "arguments": ["skills/orca-orchestration/scripts/validate-orca-orchestration.mjs"] },
+          "input": { "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--root"], "files": [] },
+          "expected": { "stdout": { "equals": "" }, "stderr": { "equals": "--root requires a value\n" }, "exit": 2, "files": [], "modes": {}, "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--root"] }
+        }
+      }
+    },
+    {
+      "id": "orca-orchestration--verify-orca-orchestration",
+      "path": "skills/orca-orchestration/scripts/verify-orca-orchestration.mjs",
+      "family": "orca-orchestration",
+      "legacyOrigin": "authored-mjs",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/orca-orchestration/scripts/verify-orca-orchestration.mjs",
+          "absent": true
+        }
+      },
+      "dimensions": { "stdout": true, "stderr": true, "exit": true, "files": true, "modes": true, "cwd": true, "env": true, "argv": true },
+      "fixtures": {
+        "happy": {
+          "scenario": "happy",
+          "command": { "executable": "bun", "arguments": ["skills/orca-orchestration/scripts/verify-orca-orchestration.mjs"] },
+          "input": { "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--help"], "files": [] },
+          "expected": {
+            "stdout": { "equals": "Usage: bun scripts/verify-orca-orchestration.mjs [--root <path>] [--runtime] [--json]\n\nRuns the package validator happy path and an isolated empty-fixture rejection. --runtime adds\nthe read-only capability checker plus Orca status. Child stdout is captured so --json emits\none aggregate document.\n" },
+            "stderr": { "equals": "" },
+            "exit": 0,
+            "files": [],
+            "modes": {},
+            "cwd": "isolated-temp-tree",
+            "env": { "NO_COLOR": "1" },
+            "argv": ["--help"]
+          }
+        },
+        "malformed": {
+          "scenario": "malformed",
+          "command": { "executable": "bun", "arguments": ["skills/orca-orchestration/scripts/verify-orca-orchestration.mjs"] },
+          "input": { "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--bogus"], "files": [] },
+          "expected": { "stdout": { "equals": "" }, "stderr": { "equals": "Unknown argument: --bogus\n" }, "exit": 2, "files": [], "modes": {}, "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--bogus"] }
+        },
+        "familyEdge": {
+          "scenario": "familyEdge",
+          "command": { "executable": "bun", "arguments": ["skills/orca-orchestration/scripts/verify-orca-orchestration.mjs"] },
+          "input": { "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--root"], "files": [] },
+          "expected": { "stdout": { "equals": "" }, "stderr": { "equals": "--root requires a value\n" }, "exit": 2, "files": [], "modes": {}, "cwd": "isolated-temp-tree", "env": { "NO_COLOR": "1" }, "argv": ["--root"] }
+        }
       }
     }
   ],

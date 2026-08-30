@@ -6,7 +6,7 @@
 
 > Claude Code · Codex · Cursor · Antigravity에서 그대로 쓰는 한국어 우선 AI 에이전트 스킬 모음.
 
-Hypercore는 코드베이스 분석부터 릴리스까지의 반복 작업을 한 번에 줄여주는 34개 스킬을 한 패키지로 제공합니다. 각 스킬은 트리거, 워크플로, 검증 게이트가 명시되어 있어 어떤 CLI에서 호출해도 같은 의도로 동작합니다.
+Hypercore는 코드베이스 분석부터 릴리스까지의 반복 작업을 한 번에 줄여주는 35개 스킬을 한 패키지로 제공합니다. 각 스킬은 트리거, 워크플로, 검증 게이트가 명시되어 있어 어떤 CLI에서 호출해도 같은 의도로 동작합니다.
 
 - **표준 설치**: 모든 지원 런타임에서 `npx skills` 하나로 설치하고 관리.
 - **다중 CLI**: Claude Code, Codex, Cursor, Antigravity에서 동일하게 사용.
@@ -176,13 +176,19 @@ cp -R hypercore/skills/git-maker your-project/.claude/skills/
 | `adhd-explainer` | 답을 파묻지 않는 ADHD 친화적 출력 — 행동 우선, 번호 단계, 진행 상태 재고지, 발송 전 게이트 | All |
 | `eli5` | 독자의 목표·사전 지식에 맞춰 정확성, 비유 한계, 핵심 주의점을 보존한 쉬운 설명 | All |
 
+### 에이전트 조정
+
+| 스킬 | 설명 | 호환 |
+|------|------|------|
+| `orca-orchestration` | Orca Run·Task·Dispatch 기반 감독형 멀티 에이전트 조정과 native/custom worker 수명주기 관리 | Orca CLI/runtime, Bun 1.3+ |
+
 ### 도메인 도구
 
 | 스킬 | 설명 | 호환 |
 |------|------|------|
 | `color-cli` | `@kood/color-cli` 기반 hex / rgb / oklch 색상 변환 | All |
 
-총 34개 스킬. 새 스킬은 `skills/<이름>/` 디렉터리를 추가하기만 하면 됩니다 — 자세한 형태는 [스킬 만들기](#스킬-만들기) 참고.
+총 35개 스킬. 새 스킬은 `skills/<이름>/` 디렉터리를 추가하기만 하면 됩니다 — 자세한 형태는 [스킬 만들기](#스킬-만들기) 참고.
 
 ## 시나리오 예시
 
@@ -227,7 +233,7 @@ hypercore/
 │       └── color/         # @kood/color-cli — color-cli 스킬이 호출
 ├── instructions/          # 프로젝트 LLM 작업 베이스 (context/harness/sourcing/validation)
 ├── scripts/               # source/lifecycle 검증 및 보조 스크립트
-└── skills/                # 34개 스킬의 단일 원본 (각 폴더에 SKILL.md / SKILL.ko.md)
+└── skills/                # 35개 스킬의 단일 원본 (각 폴더에 SKILL.md / SKILL.ko.md)
 ```
 
 스킬 한 개의 표준 구조:

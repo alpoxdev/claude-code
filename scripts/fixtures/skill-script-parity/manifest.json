@@ -163,6 +163,51 @@
       "behaviorContractId": "nextjs-architecture--validate-nextjs-architecture-skill"
     },
     {
+      "path": "skills/orca-orchestration/scripts/check-runtime-capabilities.mjs",
+      "family": "orca-orchestration",
+      "legacyOrigin": "authored-mjs",
+      "usage": "check-runtime-capabilities",
+      "behavior": "runtime-capability-check",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/orca-orchestration/scripts/check-runtime-capabilities.mjs",
+          "absent": true
+        }
+      },
+      "behaviorContractId": "orca-orchestration--check-runtime-capabilities"
+    },
+    {
+      "path": "skills/orca-orchestration/scripts/validate-orca-orchestration.mjs",
+      "family": "orca-orchestration",
+      "legacyOrigin": "authored-mjs",
+      "usage": "validate-skill",
+      "behavior": "skill-validation",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/orca-orchestration/scripts/validate-orca-orchestration.mjs",
+          "absent": true
+        }
+      },
+      "behaviorContractId": "orca-orchestration--validate-orca-orchestration"
+    },
+    {
+      "path": "skills/orca-orchestration/scripts/verify-orca-orchestration.mjs",
+      "family": "orca-orchestration",
+      "legacyOrigin": "authored-mjs",
+      "usage": "verify-skill",
+      "behavior": "skill-verification",
+      "sourcePreimage": {
+        "baselineAbsence": {
+          "baselineRef": "990359457e2ccbf2bd4bb65065037d456c5940bc",
+          "path": "skills/orca-orchestration/scripts/verify-orca-orchestration.mjs",
+          "absent": true
+        }
+      },
+      "behaviorContractId": "orca-orchestration--verify-orca-orchestration"
+    },
+    {
       "path": "skills/prd-maker/scripts/build-preview.mjs",
       "family": "prd-maker",
       "legacyOrigin": "retained-mjs",
