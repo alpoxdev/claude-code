@@ -6,10 +6,19 @@ Use this rule when `git-maker` is active and you need the durable commit/push co
 
 | Input | Action |
 |------|------|
-| no argument | Start from current-session changes, verify against git state, group into logical commits, then push. If session changes are already committed, use remaining uncommitted changes as the next candidate set. |
+| no argument | Same as `current`: select only changes attributable to the current session, verify against Git state, group into logical commits, then push. Do not fall back to unrelated remaining changes. |
+| `current` or `CURRENT` | Explicit current-session mode. Use the session's edit/tool record plus diff evidence to select only files or hunks this session created. If attribution is ambiguous, exclude the change and report it rather than absorbing user or other-agent work. |
 | `ALL` or `all` | Include every uncommitted file, group into logical commits, and leave no file behind. |
 | `--force` | Remove `--force` from commit arguments and pass it only to the push phase, which must use `--force-with-lease` and still block `main`/`master`. |
+| `&& <branch>` | End commit arguments and append one propagation target. Multiple targets run left-to-right after the source branch is committed and pushed. Scope keywords are case-insensitive. |
 | other argument | Treat it as a filter for repo discovery, file selection, staging, and message generation. Stop if it does not match actual git state. |
+
+## Current-Session Attribution
+
+- Prefer exact files and hunks written through the current session's tools and verified in the live diff.
+- A file touched by this session is not wholly owned by it: split-stage only attributable hunks when pre-existing or concurrent edits share the file.
+- Never infer ownership merely because a change is unstaged, recent, or the only remaining dirty change.
+- If exact hunk separation cannot be performed safely, leave the ambiguous file uncommitted and report it. `ALL` is the explicit opt-in for absorbing every uncommitted change.
 
 ## Commit Rules
 
@@ -66,6 +75,28 @@ If the natural draft reads like a command, rewrite it to the result now present 
 | Safety | Never force push to `main` or `master`. Never push from detached HEAD. |
 | Failure | If push fails, report failed repos. Commits remain local; do not pretend the operation completed. |
 
+## Multi-Branch Propagation
+
+1. Parse and validate every `&&` target before mutation. Reject empty/duplicate targets, the source branch, detached HEAD, and invalid ref names.
+2. Capture the ordered commit list created by this run. Never propagate unrelated earlier commits merely because they are ahead locally.
+3. Use a clean existing linked worktree or create a temporary linked worktree per target. Do not switch a dirty source checkout or disturb unrelated worktree state.
+4. Fetch and fast-forward the target from its configured remote before applying commits. Do not merge the whole source branch or rewrite target history.
+5. Cherry-pick the captured commits in order. This is the application mechanism; conflict resolution may merge the intentional source and target behaviors in the resulting files.
+6. Push a target only after its cherry-pick sequence and relevant validation succeed. Then continue to the next target.
+7. Remove only temporary worktrees created by this run and only after they are clean. Never remove a user's pre-existing worktree.
+
+## Conflict Resolution And Escalation
+
+On conflict, own the resolution by default:
+
+- inspect all conflict stages (`base`, `ours`, `theirs`), the source commit intent, target-branch evolution, relevant callers, and tests
+- preserve non-conflicting target changes and integrate the source behavior rather than choosing a side wholesale
+- resolve generated artifacts through their canonical generator when available; do not hand-edit generated output as the primary fix
+- run focused type/lint/tests or the affected executable surface before continuing and pushing
+- document what was reconciled in the final report
+
+Ask the user one narrow outcome question only if at least one material decision remains: two or more plausible product behaviors, incompatible schema/data migrations, security or deployment policy ambiguity, deletion of intentional target functionality, or a redesign whose scope substantially exceeds the propagated commits. File count alone is not a blocker, but a wide conflict is evidence to reassess scope. If asking, stop before later targets and preserve a recoverable cherry-pick/worktree state with exact commands and paths reported.
+
 ## Type Selection
 
 | Observed dominant change | Type |
@@ -90,4 +121,6 @@ If the natural draft reads like a command, rewrite it to the result now present 
 | no changes to commit | report no commit was created; push only if there are already unpushed commits and user intent still includes push |
 | one commit group fails | stop; do not push any later groups |
 | push fails | report which repositories failed; local commits remain safe |
+| propagation conflict with one coherent intent-preserving result | resolve, validate, continue, and report the reconciliation |
+| propagation conflict requires a material behavior/architecture decision | ask one focused question; do not begin later targets |
 | network/auth prompt risk | use non-interactive push helper output; report remote/auth blocker if push cannot proceed |

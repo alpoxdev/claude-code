@@ -1,6 +1,6 @@
 ---
 name: git-maker
-description: "[Hyper] Commit and push in one action, including from linked Git worktrees. Use when the user asks to commit and push together, save and push changes, or run `/git-maker`; it performs safe commit grouping first, then automatically pushes without a second confirmation."
+description: "Use this skill when the user asks to commit and push together, save and push changes, run `/git-maker`, select current-session or all changes, or propagate newly created commits to `&&`-separated branches. It supports linked Git worktrees, automatic push, and intent-preserving conflict resolution."
 license: MIT
 allowed-tools: Bash
 compatibility: Requires Bash and scripts under skills/git-maker/scripts.
@@ -35,13 +35,13 @@ Use a different language only when the user explicitly requests it, an existing 
 |---|---|
 | Intent | Commit and push requested repository changes in one safe operation. |
 | Trigger | Activate only when the user clearly wants commit plus push together. |
-| Scope | Own fast preflight, logical commit grouping, targeted staging/commits, push sequencing, and commit/push reporting. |
+| Scope | Own fast preflight, current/all change selection, logical commit grouping, targeted staging/commits, current-branch push, optional multi-branch propagation, conflict resolution, and reporting. |
 | Authority | User and project instructions outrank this skill; helper output, git diffs, hooks, branch state, and remote output are execution evidence. |
 | Evidence | Use fast helper inventory, git status/diffs, hook output, branch/upstream data, and explicit arguments before mutation. |
 | Tools | Use Bash and repository-local helper scripts; subagents, when used, stay read-only and final git mutations stay with the main integrator. |
 | Output | Korean report of commits created, repositories pushed, skipped or failed push targets, and remaining local changes. |
 | Verification | Run the validation rule checks, confirm all commits succeeded before push, and read final push/status output. |
-| Stop condition | Stop when all intended commit groups have succeeded and all intended push targets are pushed or reported with blockers. |
+| Stop condition | Stop when all intended commit groups and branch propagations have succeeded and every intended push target is pushed, or when a conflict requires a user decision under the escalation rule. |
 
 </instruction_contract>
 
@@ -68,6 +68,7 @@ Positive triggers:
 - "save and push my changes"
 - Korean request meaning "commit and push"
 - Korean request meaning "save the changes and upload them"
+- `git-maker`, `git-maker current`, or `git-maker ALL`, optionally followed by `&& <branch>` targets
 
 Negative triggers:
 
@@ -98,11 +99,9 @@ Boundary trigger:
 
 Linked Git worktrees are valid execution contexts.
 
-- Do not require `.git` to be a directory; in linked worktrees it is usually a file pointing at the common git dir.
-- Resolve repository scope with `git rev-parse --show-toplevel`, not by walking to a physical `.git` directory.
-- Treat each linked worktree checkout root as its own commit/staging boundary because it has its own index, branch, and working tree.
-- Preserve the preflight repo path from `repo|...` for commit and push phases; do not collapse linked worktrees to `git-common-dir`.
-- If the helper reports `worktree|linked`, continue normally unless the branch is detached or another push safety rule blocks the run.
+- Resolve each checkout with `git rev-parse --show-toplevel`; never assume `.git` is a directory or collapse linked worktrees to `git-common-dir`.
+- Preserve each checkout root as its own index, branch, staging, commit, and push boundary.
+- Continue from `worktree|linked` unless detached HEAD or another explicit safety rule blocks the run.
 
 </worktree_support>
 
@@ -119,16 +118,20 @@ Read only what is needed:
 
 <argument_validation>
 
-Arguments pass to the commit phase unless `--force` is present.
+Parse the invocation as `[scope] [--force] [&& target-branch ...]`. Scope tokens and target branches are control syntax, not commit filters.
 
 | Argument | Meaning |
 |------|------|
-| missing | start from current-session changes, verify against git state, group logically |
+| missing | same as `current`: include only changes attributable to this session, verify against git state, group logically |
+| `current` / `CURRENT` | include only changes attributable to this session; never silently absorb pre-existing user or other-agent changes |
 | `ALL` / `all` | include all uncommitted changes, group logically, leave no file behind |
 | `--force` | remove from commit arguments and pass only to push (`--force-with-lease`, blocked on `main`/`master`) |
+| `&& <branch>` | after the source push succeeds, apply the newly created commit set to that named branch, resolve reasonable conflicts, verify, and push; repeat left-to-right for every target |
 | other text | treat as a filter for repo discovery, file selection, staging, and commit message generation |
 
 Stop if an explicit filter does not match actual git state.
+
+Treat shell-style separators as invocation syntax even when the request is plain language rather than a literal shell command. Accept any scope-token casing (`all`, `ALL`, `current`, `CURRENT`). Reject empty target segments, duplicate targets, the source branch itself, detached HEAD, and branch names that fail `git check-ref-format --branch`.
 
 </argument_validation>
 
@@ -136,72 +139,42 @@ Stop if an explicit filter does not match actual git state.
 
 ## Phase 1. Fast preflight
 
-Run the fast helper first:
-
-```bash
-scripts/git-maker-fast.mjs inspect . --jobs 4
-```
-
-Use its repo list and file inventory to decide:
-
-- which repositories are in scope
-- whether any checkout is a linked worktree (`worktree|linked`) and should still be handled at its `repo|...` root
-- staged vs unstaged vs untracked files
-- logical change groups
-- whether a slower fallback is needed
-
-If the helper fails or insufficient detail is available, fall back to:
-
-```bash
-scripts/repo-discover.mjs
-scripts/repo-status.mjs
-scripts/repo-status.mjs path/to/repo
-```
+Run `scripts/git-maker-fast.mjs inspect . --jobs 4` first. Use its repo, worktree, staged/unstaged/untracked, and file inventory output to determine scope and logical groups. If it fails or lacks detail, use `scripts/repo-discover.mjs` and `scripts/repo-status.mjs`.
 
 ## Phase 2. Group and commit
 
-Partition changes into logical groups. Commit each group sequentially per repository:
+Partition selected changes into one logical change per commit, use targeted staging, and commit sequentially per repository:
 
 ```bash
 scripts/git-commit.mjs "<type>[scope]: <Korean subject>" path/to/file1 path/to/file2
 scripts/git-commit.mjs --repo path/to/repo "<type>[scope]: <Korean subject>" path/to/file1
 ```
 
-Rules:
-
-- one logical change per commit
-- targeted staging only
-- Korean subject/body after the Conventional Commit type/scope
-- subject uses neutral commit-summary wording, not Korean command-style imperative endings
-- no secrets, unrelated user changes, destructive git operations, or `--no-verify`
-- if any commit fails, stop and do not push
-
-For detailed policy, read `rules/commit-and-push-policy.md`.
+Use Korean neutral result-summary subjects after the Conventional Commit type/scope. Never include secrets or unrelated changes, bypass hooks, or push after a failed commit. Follow `rules/commit-and-push-policy.md`.
 
 ## Phase 3. Push automatically
 
-After all commit groups succeed, push without asking for confirmation.
-
-Prefer reusing the preflight repo list:
+After every intended commit succeeds, push without confirmation. Prefer the preflight repo list:
 
 ```bash
 scripts/git-maker-fast.mjs push /absolute/repo/path
 scripts/git-maker-fast.mjs push --force /absolute/repo/path
 ```
 
-Fallback:
+Use `scripts/git-push.mjs [--force]` only as fallback.
 
-```bash
-scripts/git-push.mjs
-scripts/git-push.mjs --force
-```
+## Phase 4. Propagate to requested branches
 
-## Phase 4. Report
+For each `&& <branch>` target, apply only the ordered commits created by this run in a clean linked worktree, resolve intent-preserving conflicts autonomously, validate, and push before continuing left-to-right. Ask one focused question only when resolution requires a material behavior, architecture, security, migration, or deployment-policy decision; preserve a recoverable state and do not start later targets. Follow `rules/commit-and-push-policy.md` for exact selection, propagation, and escalation rules.
+
+## Phase 5. Report
 
 Report:
 
 - commits created and messages
 - repositories pushed
+- target branches updated and pushed
+- conflicts resolved automatically, checks run, or the exact decision required from the user
 - skipped or failed push targets
 - any remaining local changes or blockers
 
@@ -209,10 +182,8 @@ Report:
 
 <parallelization>
 
-- Parallelize read-only repository inspection with `scripts/git-maker-fast.mjs inspect --jobs N`.
-- For complex dirty trees, read `rules/agent-parallelism.md` before using Claude Code/Codex subagents; subagents may only review and propose.
-- Do not parallelize commits in the same repository because the git index is shared.
-- Multi-repo commits may be worked independently only after repo boundaries and file groups are clear.
+- Parallelize read-only inspection with `inspect --jobs N`; read `rules/agent-parallelism.md` before delegating complex grouping or review.
+- Never parallelize mutations against one index. Subagents stay read-only; the main integrator owns staging, commit, propagation, and push.
 - Push only after every intended commit succeeds.
 
 </parallelization>
@@ -223,6 +194,8 @@ Report:
 |------|------|
 | Commit first | All commit groups must succeed before push. |
 | Automatic push | Do not ask whether to push after successful commits. |
+| Branch propagation | Apply only commits created by this run to `&&` targets, in order, and push each verified target automatically. |
+| Conflict ownership | Resolve conflicts autonomously when intent is recoverable; ask only at a material product/architecture decision boundary. |
 | Safety | Never force push to `main` or `master`; never push from detached HEAD. |
 | Upstream | If no upstream exists, push with `-u origin <branch>`. |
 | Reuse preflight | Prefer `git-maker-fast.mjs push [repo...]` to avoid duplicate discovery. |
@@ -240,50 +213,25 @@ Report:
 | Partial push | pushing before all intended commit groups are done |
 | Blanket staging | `git add .` unless `ALL` mode intentionally includes everything and grouping remains explicit |
 | Unsafe history | amend, rebase, reset, raw `--force`, or `--no-verify` without explicit request |
+| Broad conflict guessing | silently choosing among materially different behaviors or deleting intentional target-branch work to finish a propagation |
 | Secrets | committing credentials, tokens, private keys, or unrelated user changes |
 
 </forbidden>
 
 <examples>
 
-## Simple fast commit and push
-
-```text
-/git-maker
-```
-
-Result: fast inspect → group session changes → commit each group → auto-push inspected repo(s).
-
-## Commit all and push
-
-```text
-/git-maker ALL
-```
-
-Result: all uncommitted files are grouped, committed, and pushed. No file is skipped.
-
-## Commit and force push a feature branch
-
-```text
-/git-maker --force
-```
-
-Result: commit normally, then push with `--force-with-lease`; blocked on `main`/`master`.
-
-## Commit and push inside a linked worktree
-
-```text
-/git-maker
-```
-
-Result: fast inspect from the worktree subdirectory → resolve the linked worktree checkout root → group/commit there → auto-push that worktree branch.
-
-## Commit-only request
-
-```text
-commit these changes
-```
-
-Result: do not use this skill; route to `git-commit`.
+- `/git-maker` → current-session changes only, grouped, committed, and auto-pushed.
+- `/git-maker ALL` → every uncommitted change grouped, committed, and pushed.
+- `/git-maker current && dev && deploy/staging` → current-session commits propagated and pushed left-to-right with autonomous reasonable conflict resolution.
+- `/git-maker && dev` → default `current` scope, then verified propagation to `dev`.
+- `/git-maker --force` → normal commit, then `--force-with-lease`; blocked on `main`/`master`.
+- Linked-worktree invocation → operate at that checkout root and push its named branch.
+- `commit these changes` → do not activate; route to `git-commit`.
 
 </examples>
+
+<validation>
+
+Run the target quick validator, focused corpus validator, `assets/evals/git-maker-cases.jsonl` binary scenario check, helper syntax/runtime checks, and the repository skill verification gate described by `rules/validation.md`. This deterministic workflow uses no improvement loop; finish only when critical cases pass and residual warnings are stated.
+
+</validation>
