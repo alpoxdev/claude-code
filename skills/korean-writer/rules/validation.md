@@ -1,6 +1,6 @@
 # Validation and Self-Check
 
-**Purpose**: Confirm the draft you just wrote, or the text you just repaired, is clean before delivery, using only what a model can count or see. No scripts, no scores. The steps below run in compose mode on a new draft; in humanize mode the same S1 scan and connective check run on the repaired text, while the anchor re-verification and the over-correction guard in `rules/humanize-method.md` replace steps 6 and 7.
+**Purpose**: Confirm the draft you just wrote, or the text you just repaired, is clean before delivery, using only what a model can count or see. No scripts, no scores. The steps below run in compose mode on a new draft. In humanize mode the shortened protocol in section 2 runs instead: the S1 scan and connective count of steps 1 and 2 on the repaired text, then the anchor re-verification and the over-correction guard from `rules/humanize-method.md`, with steps 3 to 6 skipped because the supplied text's rhythm, shape runs, and decoration are the author's rather than targets to rewrite.
 
 Every threshold below carries an inline `(출처: ...)` tag naming what kind of threshold it is. `fixed` marks a count this package pins from drafting practice, so the check is a comparison against a number. `judgment` marks a call made by eye, where no number would survive contact with a real draft. Steps carrying no tag are not thresholds.
 
@@ -52,7 +52,7 @@ This skill's own Korean bodies obey its own S1 rules. Prose that preaches 번역
 rg -n "를 통해|에 있어서|되어진다|시사하는 바|결론적으로" skills/korean-writer/SKILL.ko.md skills/korean-writer/rules/genre-calibration.ko.md skills/korean-writer/rules/validation.ko.md skills/korean-writer/rules/humanize-method.ko.md
 ```
 
-Expect zero hits. Any hit is rewritten to follow the rule it violates.
+Expect zero hits. Any hit is rewritten to follow the rule it violates. The Korean mirror of this audit wraps the first character of each search pattern in a character class, because `validation.ko.md` is itself an audited path and a plain pattern inside its own code block would trip on itself; the plain patterns here are safe because this English file is not in the audited path list.
 
 **Exception**: `rules/writing-method.ko.md`, `rules/tell-avoidance.ko.md`, and `references/ai-tell-catalog.ko.md` are exempt. All three quote the forbidden patterns by design, since listing 번역투 examples requires writing them, so they are excluded from this audit rather than being made to pass it.
 

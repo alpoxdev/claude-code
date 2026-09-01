@@ -1,6 +1,6 @@
 # Humanize Method
 
-**Purpose**: Govern the repair of supplied Korean text — existing prose the user asks to make read as if a person wrote it. This file owns humanize mode; `rules/writing-method.md` supplies the W-IDs it invokes, and `rules/validation.md` step 3 owns the shared self-check. Compose mode does not run this file.
+**Purpose**: Govern the repair of supplied Korean text — existing prose the user asks to make read as if a person wrote it. This file owns humanize mode; `rules/writing-method.md` supplies the W-IDs it invokes, and `rules/validation.md` section 2 owns the repaired-text self-check. Compose mode does not run this file.
 
 Mode selection stays in `SKILL.md`. Once humanize mode starts, this file outranks the genre table's register row: the supplied text's own register is the target, not the genre's preferred voice.
 
