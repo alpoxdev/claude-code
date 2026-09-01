@@ -27,6 +27,7 @@ This directory is the reference layer that helps a reusable skill **discover, se
 | GJC | [`gjc/README.md`](gjc/README.md) | No version-pinned capability evidence in the repository | Discover at runtime; plain-text question if absent |
 | Hermes Agent | [`hermes-agent/README.md`](hermes-agent/README.md) | No version-pinned capability evidence in the repository | Discover at runtime; plain-text question if absent |
 | JCode | [`jcode/README.md`](jcode/README.md) | Version-pinned config, tool-policy, MCP, session, swarm, SDK, and automation boundaries | Plain-text question; runtime gates are not human approval |
+| OMO | [`omo/README.md`](omo/README.md) | Local Orca supervision reporter sends best-effort direct status/heartbeat mail only for preamble-bound Dispatches | No reporter mail without complete current Dispatch context; coordinator owns recovery and cleanup |
 | OpenClaw | [`openclaw/README.md`](openclaw/README.md) | No version-pinned capability evidence in the repository | Discover at runtime; plain-text question if absent |
 | OpenCode | [`opencode/README.md`](opencode/README.md) | Prefer an ask-style approval prompt when available | Native prompt when exposed, otherwise plain-text question |
 

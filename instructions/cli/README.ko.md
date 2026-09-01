@@ -27,6 +27,7 @@
 | GJC | [`gjc/README.ko.md`](gjc/README.ko.md) | 저장소 내 버전 고정 기능 근거 없음 | 런타임 발견 후, 없으면 평문 질문 |
 | Hermes Agent | [`hermes-agent/README.ko.md`](hermes-agent/README.ko.md) | 저장소 내 버전 고정 기능 근거 없음 | 런타임 발견 후, 없으면 평문 질문 |
 | JCode | [`jcode/README.ko.md`](jcode/README.ko.md) | 버전 고정된 config·tool policy·MCP·session·swarm·SDK·automation 경계 | 평문 질문, 런타임 gate를 사용자 승인으로 간주하지 않음 |
+| OMO | [`omo/README.ko.md`](omo/README.ko.md) | 로컬 Orca 감독 reporter가 preamble에 묶인 Dispatch에서만 best-effort status/heartbeat 직접 메일 전송 | 현재 Dispatch context가 완전하지 않으면 reporter 메일 없음. 복구·cleanup은 coordinator 소유 |
 | OpenClaw | [`openclaw/README.ko.md`](openclaw/README.ko.md) | 저장소 내 버전 고정 기능 근거 없음 | 런타임 발견 후, 없으면 평문 질문 |
 | OpenCode | [`opencode/README.ko.md`](opencode/README.ko.md) | ask 스타일 승인 프롬프트를 사용할 수 있을 때 우선 | 기능 노출 시 native prompt, 아니면 평문 질문 |
 
