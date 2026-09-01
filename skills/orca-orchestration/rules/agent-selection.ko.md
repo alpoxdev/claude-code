@@ -130,6 +130,11 @@ Dispatch가 모두 `completed`인지 확인한 후에만 완료를 주장합니�
 | `dispatch-show`가 `--run`을 거부 | 현재 명령이 그 flag를 받지 않는다. 정확히 지원되는 `--task <task-id> --preamble --json` 형태로 다시 실행하고 state를 다시 만들지 않는다. |
 | Prompt-send 실패 | 기존 Dispatch를 보존하고 delivery/terminal 상태를 검사하며 exact recovery action을 따른다. 새 Dispatch를 만들거나 prompt를 무작정 중복 전송하지 않는다. |
 | accepted send 뒤 `unsupervised` / `context_only` | low-level Dispatch에는 소유 terminal resource가 없다. 같은 탭을 계속 감독하고 delivery를 낮게 판정하거나 탭을 교체하거나 lifecycle completion 전 수동 정산하지 않는다. |
+| 확인된 중간 작업 stall (네이티브) | SKILL.md의 Supervision loop 복구 사다리를 따른다: bounded 확인, nudge 최대 1회, `worker-show`가 `failed` 또는 `stopped`를 보고할 때만 사다리 3단. |
+| 확인된 중간 작업 stall (커스텀) | SKILL.md의 Supervision loop 복구 사다리를 따른다: bounded 확인, read-before-send 뒤 nudge 최대 1회, 그다음 사용자 에스컬레이션. 자동 재디스패치하지 않는다. |
+| `worker-show` `failed` 또는 `stopped` | SKILL.md Supervision loop의 복구 사다리 3단: 네이티브 전용 `worker-start --task <task> --retry-of <dispatch_id>` 1회. `--on`/worktree와 `--agent`/terminal 선택을 반복하며 placement를 상속하지 않는다. |
+| `outcome_unknown` | 자동 교체하지 않는다. SKILL.md Supervision loop에 따라 명시적 사용자 승인을 요구한다. |
+| `terminal_gone` | 런타임 healthy + 정확한 handle 부재뿐이다. SKILL.md Supervision loop에 따라 분류하고 증거와 함께 에스컬레이션하며 런타임 장애와 혼동하지 않는다. |
 
 native `worker-start` 기능이 엄격히 필요하면 멈추고 등록된 Orca agent를 사용하거나 OMO
 first-class 지원을 기다립니다. lifecycle 기능을 얻기 위해 다른 agent로 fallback하지 않습니다.
@@ -139,11 +144,15 @@ first-class 지원을 기다립니다. lifecycle 기능을 얻기 위해 다른 
 자식 worker가 아니라 부모 coordinator가 모든 자식 session lifecycle 완료를 책임집니다. 부모가
 수락된 `worker_done`, 실패한 Dispatch, 명시적인 terminal outcome을 관찰하면 다시
 check/wait하거나 종료하기 전에 그 자식을 정산해야 합니다.
+stall 정산(`failed`, `stopped`, `abandoned` outcome 포함)으로 끝난 부모 생성 자식도 reuse,
+release/close, retain 접수 결정 대상입니다. stall 정산 뒤 접수 receipt 없이 부모가 만든 자식을
+열린 상태로 두는 것은 금지입니다. 라이브 abandoned×2 잔재가 누수 선례입니다.
 
 | 자식 종류와 소유권 | 정산 뒤 부모 동작 |
 |---|---|
 | `worker-start`가 만든 native supervised terminal | 같은 terminal을 즉시 follow-up Dispatch에 재사용하거나, 사용자가 요청하면 명시적으로 보존하거나, `worker-release --dispatch <dispatch-id> --json`을 실행한다. release receipt 대신 넓은 `terminal close`를 호출하지 않는다. |
 | 부모가 만든 custom-dispatch terminal | Dispatch가 settled됐고 handle이 여전히 같은 자식임을 확인한 뒤, 재사용하거나 사용자 명시 요청으로 보존하거나, `terminal close --terminal <handle> --json`을 실행한다. close receipt를 기록한다. |
+| stall 정산된 부모 생성 자식(`failed`/`stopped`/`abandoned`) | 다른 부모 생성 정산과 같은 reuse/release/retain 접수 결정을 적용한다. 접수 receipt 없이 열린 상태로 두지 않는다. |
 | 기존/재사용/사용자 소유 custom terminal | 자동으로 닫지 않는다. Task/Dispatch 완료 뒤 retained/user-owned를 기록하고 사용자가 명시적으로 닫으라고 할 때까지 열린 상태로 둔다. |
 | Setup, coordinator, active, 증명할 수 없는, stale terminal | 절대 닫지 않는다. ownership/state 차단 원인을 알리고 기다리거나 escalation한다. |
 
@@ -224,9 +233,15 @@ agent의 CLI 내부에서만 고릅니다.
 
 ## 단발 복구 경계
 
-이 정책은 최적화 루프가 아닙니다. 허용 순서는 사전 확인 한 번, 실행 한 번, 자동 쿼터 대체
-최대 한 번입니다. 대체 에이전트가 `tui-idle`에 도달하고 작업 전달에 성공할 때만 유지합니다.
-그 외에는 원래 실패를 보존하고 멈춥니다.
+이 정책은 최적화 루프가 아닙니다. 롤링 감독 대기는 체크포인트이지 복구가 아니며,
+라이프사이클 종료 신호까지 무제한으로 계속됩니다. 제한된 복구는 다음으로 한정됩니다: (1) 실제
+실행 실패 뒤 자동 quota/rate-limit 대체 한 번 — 새 터미널이 `tui-idle`에 도달하고 의도한
+작업을 받을 때만 승인합니다; (2) Dispatch당 확인된 중간 작업 stall 한 건에 대해 nudge 최대
+한 번, 그리고 Dispatch가 `failed` 또는 `stopped`를 보고하는 네이티브 워커에 한해
+`--retry-of` 교체 최대 한 번. `outcome_unknown`, 커스텀 재디스패치, abandon, 두 번째 nudge는
+명시적 사용자 결정이 필요합니다. 그 외에는 원래 실패를 보존하고 멈춥니다. 부모 프로세스의
+하네스·세션·lease 경계 만료는 복구가 아니라 관측 체크포인트입니다 — 만료 시 부모는 보고한 뒤
+재무장(re-arm)하거나 결정을 사용자에게 넘기며, worker를 실패로 분류하거나 정산하지 않습니다.
 
 ## 필수 실행 기록
 
@@ -241,4 +256,8 @@ agent의 CLI 내부에서만 고릅니다.
 - Orca 워크트리 id와 유일한 터미널 핸들
 - 프롬프트 전달 결과
 - 부모 정산 결정(`reused`, `released`, `closed`, `retained`)과 그 receipt
+- `workerKind`, 터미널 소유권(`parent-created`, `reused`, 또는 `user-owned`), 감독 계약
+  포함 여부
+- heartbeat 주기, stall 증거 경로, nudge 접수·응답, stall 분류 결과
+- 교체/정산 결정과 권한 출처
 - 쿼터 대체 또는 차단 원인(해당 시)

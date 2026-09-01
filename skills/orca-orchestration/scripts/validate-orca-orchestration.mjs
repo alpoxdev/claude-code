@@ -230,6 +230,10 @@ if (rows.length > 0) {
     'regression-parent-settles-native-child',
     'regression-parent-preserves-user-owned-omo',
     'regression-parent-closes-created-custom-child',
+    'regression-stall-single-nudge',
+    'regression-native-retry-of-once',
+    'regression-custom-stall-no-auto-redispatch',
+    'regression-wait-timeout-is-checkpoint',
   ]) {
     if (!ids.has(id)) errors.push(`missing_regression:${id}`)
   }

@@ -33,6 +33,11 @@ const probes = [
   { name: 'gjc-version', command: 'gjc', args: ['--version'], requiredTokens: ['gjc'] },
   { name: 'gjc-launch-help', command: 'gjc', args: ['launch', '--help'], requiredTokens: ['--model', '--thinking', '--mpreset', '--credential', '--prefer-credential'] },
   { name: 'gjc-accounts-help', command: 'gjc', args: ['accounts', '--help'], requiredTokens: ['list|check|pin|logout', '--json', '--persistent'] },
+  { name: 'orca-check-help', command: 'orca', args: ['orchestration', 'check', '--help'], requiredTokens: ['--wait', '--types', '--ack'] },
+  { name: 'orca-worker-show-help', command: 'orca', args: ['orchestration', 'worker-show', '--help'], requiredTokens: ['--dispatch'] },
+  { name: 'orca-worker-read-help', command: 'orca', args: ['orchestration', 'worker-read', '--help'], requiredTokens: ['--dispatch', '--limit'] },
+  { name: 'orca-send-help', command: 'orca', args: ['orchestration', 'send', '--help'], requiredTokens: ['--to', '--type'] },
+  { name: 'orca-terminal-read-help', command: 'orca', args: ['terminal', 'read', '--help'], requiredTokens: ['--cursor', '--screen'] },
 ]
 if (checkOrcaStatus) {
   probes.push({ name: 'orca-status', command: 'orca', args: ['status', '--json'], requiredTokens: [], parseJson: true })
