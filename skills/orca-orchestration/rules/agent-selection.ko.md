@@ -16,18 +16,53 @@ Orca에서 코딩 에이전트 터미널을 실행, 설정 또는 복구할 때 
    핸들로 유지합니다.
 5. 다음 입력이 명확하지 않으면 후속 `send` 전에 터미널을 읽습니다.
 
-`omo`, `gjc`처럼 등록되지 않은 CLI에는 직접 명령 경로가 필요합니다. 그렇다고 모든 실행
-파일이 안전하다는 뜻은 아니므로, 먼저 바이너리 존재와 `--help` 출력을 확인합니다.
+OMO는 `pi` 런처를 통해 등록된 에이전트입니다. 새 OMO 워커는 `worker-start --agent pi`를
+우선합니다(아래 "pi로 실행하는 OMO 네이티브 감독 워커" 참고). 직접 명령 custom-dispatch 경로는
+`gjc`처럼 진짜 등록되지 않은 CLI이거나 기존 사용자 소유 탭을 재사용할 때만 필요합니다. 그렇다고
+모든 실행 파일이 안전하다는 뜻은 아니므로, 먼저 바이너리 존재와 `--help` 출력을 확인합니다.
+
+## pi로 실행하는 OMO 네이티브 감독 워커
+
+Orca 런타임 1.4.195는 `pi`를 first-class 에이전트로 등록하며, 로컬 `pi` 런처는 orca-pi-adapter
+래퍼로 OMO를 실행합니다. 새 OMO 워커는 네이티브 경로를 우선합니다.
+
+```text
+ORCA orchestration worker-start --task <task-id> --agent pi --worktree current --json
+```
+
+한 번의 호출로 워커 terminal을 만들고 OMO를 띄우고 task를 전달합니다. ready 결과는
+`stage: input_accepted`를 보고하고 Dispatch id와 생성된 agent terminal handle을 돌려줍니다. 이후
+워커가 `status`/`heartbeat`를 보내고 스스로 `worker_done`을 보내며 Task가 `completed`(provenance
+`worker_report`)로 정산됩니다. Orca 1.4.195에서 라이브로 확인했습니다(run_c5379d5dd75d /
+task_5fc2c7713ffd / dispatch ctx_9f9f358e4220, 2026-09-02).
+
+제약:
+
+- `omo` 에이전트 id는 미등록입니다. `worker-start --agent omo`는 실패하니 항상 `pi`를 씁니다.
+- `worker-start --agent pi`는 실행 시점 모델 선택을 거부합니다("Agent pi does not support
+  launch-time model selection")이므로 모델을 고정할 수 없습니다. `pi`가 띄우는 기본 모델이
+  괜찮으면 네이티브 경로를 그대로 씁니다.
+- 새 워커의 모델을 고정해야 하면(예: 부모 모델 친화성) 네이티브 `--agent pi` 실행 대신 pane을
+  분할/생성해 거기서 `pi --model <id>`를 띄우고 `tui-idle`을 기다린 뒤 그 pane을 adoption합니다.
+
+  ```text
+  ORCA terminal split --terminal <parent-handle> --direction vertical --command "pi --model <id>" --json
+  ORCA terminal wait --terminal <pane-handle> --for tui-idle --timeout-ms 60000 --json
+  ORCA orchestration worker-start --task <task-id> --terminal <pane-handle> --worktree current --json
+  ```
+
+  `--terminal` adoption은 기존 등록-에이전트 terminal을 재사용하는 것이라 `--agent`나 `--model`과
+  병용할 수 없습니다. 그 pane을 `pi --model <id>`로 띄우는 것이 선택한 모델을 적용하는 방법입니다.
 
 ## 미등록 CLI custom-dispatch 워커 경로
 
-Orca 1.4.192에는 OMO를 first-class `worker-start` agent로 등록하는 문서화된 public configuration
-surface가 없습니다. Orca가 지원하는 등록 방법을 공개할 때까지 미등록 CLI 경로를 사용합니다.
-특히 `orca.yaml`에 등록한 뒤 `--agent omo`를 사용하라는 식의 존재하지 않는 설정을 제안하지
-않으며, 등록 여부를 확인하려고 `worker-start --agent omo`를 실행하지 않습니다.
+이 경로는 진짜 미등록 CLI(예: GJC)이거나 재실행하면 안 되는 기존 사용자 소유 탭을 재사용할
+때만 씁니다. 새 OMO 워커는 위의 `pi` 네이티브 경로를 대신 씁니다. `omo` 에이전트 id는 여전히
+미등록이니 `worker-start --agent omo`를 실행하지 않으며 `orca.yaml`에 등록한 뒤 `--agent omo`를
+쓰라는 식의 존재하지 않는 설정도 제안하지 않습니다. 네이티브 OMO가 필요하면 `--agent pi`를 씁니다.
 
-OMO 또는 다른 미등록 CLI worker는 low-level Dispatch와 terminal input을 사용합니다. Orca가
-돌려준 정확한 Dispatch preamble과 task spec이 agent에 전달된 뒤에만 Dispatch lifecycle이
+진짜 미등록 CLI worker 또는 재사용하는 기존 탭은 low-level Dispatch와 terminal input을 씁니다.
+Orca가 돌려준 정확한 Dispatch preamble과 task spec이 agent에 전달된 뒤에만 Dispatch lifecycle이
 권한을 가집니다. terminal process는 사용자 소유이며, 이 경로에는 native `worker-start` launch
 receipt, 소유 terminal cleanup, `launch.requested`/`launch.effective` 근거가 없습니다.
 
@@ -123,7 +158,7 @@ Dispatch가 모두 `completed`인지 확인한 후에만 완료를 주장합니�
 
 | 관찰 | 필수 대응 |
 |---|---|
-| `agent_unconfigured` | Orca가 terminal을 first-class agent로 인식하지 못했다는 뜻이며 OMO 실행 실패 증거가 아니다. terminal을 보존하고 `worker-start`를 재시도하지 않으며 low-level Dispatch를 사용한다. |
+| `agent_unconfigured` | Orca가 terminal을 first-class agent로 인식하지 못했다는 뜻이며 OMO 실행 실패 증거가 아니다. terminal을 보존하고 그 탭에 `worker-start --terminal`을 재시도하지 않는다. 새 워커는 `worker-start --agent pi`로 네이티브 실행하고, 이 탭을 재사용하려면 low-level Dispatch를 사용한다. |
 | `tui-idle` timeout | 같은 terminal을 한 번 읽어 상태를 알리고 prompt를 보내거나 다른 terminal을 만들지 않는다. |
 | Dispatch 생성 실패 | Task/terminal 상태를 보존하고 prompt를 보내지 않으며 Orca의 exact recovery action과 오류를 알린다. |
 | `dispatch-show --preamble` 실패 | 부분적이거나 만들어낸 prompt를 보내지 않는다. Dispatch를 보존하고 정확한 실패를 알린다. |
@@ -136,8 +171,9 @@ Dispatch가 모두 `completed`인지 확인한 후에만 완료를 주장합니�
 | `outcome_unknown` | 자동 교체하지 않는다. SKILL.md Supervision loop에 따라 명시적 사용자 승인을 요구한다. |
 | `terminal_gone` | 런타임 healthy + 정확한 handle 부재뿐이다. SKILL.md Supervision loop에 따라 분류하고 증거와 함께 에스컬레이션하며 런타임 장애와 혼동하지 않는다. |
 
-native `worker-start` 기능이 엄격히 필요하면 멈추고 등록된 Orca agent를 사용하거나 OMO
-first-class 지원을 기다립니다. lifecycle 기능을 얻기 위해 다른 agent로 fallback하지 않습니다.
+새 OMO 워커에 native `worker-start` 기능이 엄격히 필요하면 custom-dispatch 대신 등록된 `pi`
+에이전트(`worker-start --agent pi`)를 씁니다. 선택한 에이전트에 필요한 native 기능이 정말로 없으면
+멈춥니다. lifecycle 기능을 얻으려고 다른 agent로 fallback하지 않습니다.
 
 ## 부모 정리 책임
 
@@ -171,8 +207,9 @@ agent의 CLI 내부에서만 고릅니다.
 1. 먼저 활성 에이전트 세션/runtime 식별자에서, 다음으로 활성 터미널의 시작 명령에서, 마지막으로
    명시적 작업 컨텍스트에서 원본 에이전트를 확인합니다. 사용한 근거를 기록합니다.
 2. 기본 워커는 모두 같은 에이전트로 실행합니다. 예를 들어 OMO는 OMO 워커를, Claude는 Claude
-   워커를 시작합니다. Orca가 아는 원본은 known-agent 경로를, 미등록 원본은 새/기존 여부와
-   상관없이 위의 custom-dispatch terminal 경로를 사용합니다.
+   워커를 시작합니다. OMO 원본은 새 OMO 워커를 `worker-start --agent pi`로 네이티브 실행하고,
+   다른 Orca-known 원본은 각자의 known-agent 경로를, 진짜 미등록 원본이나 재사용하는 기존 탭은
+   위의 custom-dispatch terminal 경로를 사용합니다.
 3. 사용자가 대체 워커 에이전트의 이름을 명시적으로 지정할 때만 친화성을 바꿀 수 있습니다.
    override는 Task 범위이고 launch record에 기록되며 해당 Task의 유효 worker agent가 됩니다.
    모델, effort, provider, 프로필, credential, quota 대체 요청은 원본 에이전트를 바꾸지

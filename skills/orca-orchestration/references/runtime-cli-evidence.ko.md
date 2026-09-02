@@ -14,6 +14,7 @@ Orca 터미널에서 코딩 에이전트를 실행하거나 대상 CLI에 따라
 | 실제 read-only OMO custom-dispatch run | Orca 1.4.192 / OMO beta 5.0.0-0.beta.26, 2026-08-30 | `omo --model opencodex/gpt-5.6-sol --thinking high --permission-preset workspace --no-model-fallback` terminal이 `tui-idle`에 도달했다. injection 없이 low-level Dispatch를 만들고 반환 preamble 4943 bytes를 수락했으며 OMO는 Working 뒤 수락된 `worker_done`을 보내 Task와 Dispatch를 완료했고 탭은 열린 상태로 남았다. | 한 번의 read-only run이다. 이후 Orca/OMO 버전에 적용하기 전 runtime 동작을 다시 확인한다. |
 | 로컬 `orca status --json`, `orchestration check/worker-show/worker-read/send/worker-start --help`, `terminal read/wait --help` | Orca 1.4.193 / OMO 5.0.0-0.beta.31, 2026-09-01 | 감독 원시 명령이 시맨틱과 함께 존재한다: `check --wait` 타임아웃은 체크포인트이지 실패가 아니고 `{count:0}`은 일치하는 메시지가 없음을 뜻하며, 15초 keepalive는 liveness이지 진행이 아니다; `worker-show --dispatch` 상태와 `observation.agentWait`(null = 조사했고 대기 없음을 발견, 부재 = 조사하지 않음, 대기 중 워커는 실패가 아니라 healthy)로 조건부 복구가 가능하다; `worker-read --source/--cursor/--limit`은 source_changed 처리를 포함한 bounded 변화 감지용이다; `send --to dispatch:<id>`는 시도별 coordinator 지침을 중계한다; `worker-start --retry-of`는 placement를 상속하지 않고 네이티브 failed 또는 stopped에서만 교체 attempt를 연결한다; `terminal read --cursor/--limit` 델타와 `--screen` 프레임(상호 배타)은 변화/Working 마커 신호를 준다; heartbeat/status는 alive-not-done 신호다. | help token 가용성은 runtime 동작이나 기본값을 증명하지 않는다. 이후 Orca/OMO 버전에 적용하기 전 다시 확인한다. |
 | W1.8b 격리 nudge 프로브: 테스트 OMO custom-dispatch terminal, 최소 과제 1건과 완료 후 `terminal send` 상태 질의 1건 | Orca 1.4.193 / OMO 5.0.0-0.beta.31, 2026-09-01 | 문서화된 custom nudge 절차는 idle custom-dispatch 화면에서 안전하다: 수락된 `worker_done`(Task와 Dispatch `completed`) 뒤 `terminal send` 상태 질의 1건이 수락됐고(receipt 110 bytes 표시), OMO 워커는 90초 안에 화면으로 한 줄 idle-phase 응답을 보냈으며, `--screen` 출력에 composer draft 오염이 없었고 TUI 잔상도 없었으며, 새 Working 마커가 없었고 후속 orchestration 메일도 생성되지 않았다. 즉 워커는 질의를 새 작업으로 오인하지 않았다. 이는 SKILL.md Supervision loop의 read-before-send와 단일 상태 질의 문구 절차를 뒷받침한다. | idle 화면에서 테스트 문구로 수행한 단일 격리 프로브일 뿐이다. 작업 중 busy 화면은 시험하지 않았고 모델도 한 종(opencodex/combo/glm-5.3-flash)만 썼다. busy 화면, 다른 모델, 이후 버전으로 일반화하기 전 다시 확인한다. 근거: `.omo/evidence/w18b-nudge-probe/`. |
+| 실제 read-only OMO 네이티브 `pi` run | Orca 1.4.195, 2026-09-02 | `worker-start --agent pi`는 OMO의 네이티브 감독 워커 경로다: 한 번의 호출로 agent terminal을 만들고 `pi` 런처로 OMO를 띄우고 task를 전달(`stage: input_accepted`)했으며, 워커가 스스로 수락된 `worker_done`을 보내 Task가 `completed`(provenance `worker_report`)로 정산됐다. `omo` id는 여전히 미등록이고 `worker-start --agent pi --model <id>`는 "Agent pi does not support launch-time model selection"으로 거부된다. | 한 번의 read-only run(run_c5379d5dd75d / task_5fc2c7713ffd / dispatch ctx_9f9f358e4220)이다. 이후 Orca/OMO 버전 적용 전과 다른 호스트에서 `pi` 등록을 다시 확인한다. 모델을 고정하려면 pane에서 `pi --model <id>`를 띄우고 `worker-start --terminal`로 adoption한다. |
 
 이 표는 로컬 명령 근거이며 credential 공개나 유료 요청 발생 권한이 아닙니다. 변동 가능한
 플래그에 의존하기 전에는 `scripts/check-runtime-capabilities.mjs --json`을 실행하고 실제 task에
@@ -47,24 +48,40 @@ ORCA terminal send --terminal <handle> --text "<exact preamble + task specificat
 현재 워크트리에서는 워크트리 생성을 생략하고 터미널 생성에 `--worktree active`를 사용합니다.
 시작 명령이 모델과 effort 플래그를 소유하고, 전달 텍스트는 셸 문법이 아닌 작업입니다.
 
-## 미등록 OMO 터미널
+## pi로 실행하는 OMO 네이티브 워커 (우선)
 
-Orca가 OMO를 first-class agent로 인식하지 않을 때는 일반 `worker-start` composition을 쓸 수
-없습니다. Orca에는 OMO를 first-class worker-start agent로 등록하는 문서화된 public configuration
-surface가 현재 없습니다. Orca가 지원하는 등록 mechanism을 공개할 때까지 미등록 CLI 경로를
-사용합니다. 이 상태를 안 뒤에는 아래 명령을 어느 쪽도 사용하지 않습니다.
+Orca 1.4.195에서는 `pi` 에이전트가 등록되어 있고 그 런처가 OMO를 실행하므로, 새 OMO 워커는
+네이티브 감독 워커입니다.
+
+```text
+ORCA orchestration worker-start --task <task_id> --agent pi --worktree current --json
+```
+
+`omo` id는 여전히 미등록이라 `worker-start --agent omo`는 실패합니다. `worker-start --agent pi`는
+`--model`을 거부하므로, 모델을 고정하려면 pane에서 `pi --model <id>`를 띄우고
+`worker-start --task <task_id> --terminal <pane-handle> --worktree current --json`으로 adoption합니다
+(adoption은 `--agent`/`--model`과 병용 불가).
+
+## 미등록 OMO 터미널 (custom-dispatch 폴백)
+
+진짜 미등록 CLI이거나 등록 에이전트를 실행하지 않는 기존 사용자 소유 탭(`pi`가 아니라 raw `omo`로
+띄운 탭)을 재사용할 때만 씁니다. `omo` id는 등록된 `worker-start` 에이전트가 아니므로 그런 탭을
+등록하려고 아래 명령을 쓰지 않습니다.
 
 ```text
 ORCA orchestration worker-start --task <task_id> --worktree current --agent omo --json
 ORCA orchestration worker-start --task <task_id> --terminal <omo-handle> --json
 ```
 
-두 번째 형태는 `agent_unconfigured` / `Terminal ... is not running a recognized agent`로 실패할
-수 있습니다. [`../rules/agent-selection.ko.md`](../rules/agent-selection.ko.md)의 custom-dispatch
-순서를 사용합니다. 기존 탭이 주어지면 재사용하고, `--inject` 없이 dispatch하며,
-`dispatch-show --preamble`으로 정확한 preamble을 가져오고, 그 preamble과 Task spec을 보내며,
-Dispatch lifecycle signal을 기다립니다. 이 경로는 기존 OMO 탭을 보존하지만 native launch receipt나
-`launch.requested/effective` 의미는 제공하지 않습니다.
+첫 번째 형태는 `omo`가 미등록이라 실패하고, 두 번째 형태는 탭이 등록 에이전트가 아닐 때
+`agent_unconfigured` / `Terminal ... is not running a recognized agent`로 실패할 수 있습니다.
+(그 pane이 `pi`를 실행 중이면 `worker-start --terminal <pane>`은 동작합니다.) 새 워커는 위의 `pi`
+네이티브 경로를 쓰고, 이 탭을 재사용하려면
+[`../rules/agent-selection.ko.md`](../rules/agent-selection.ko.md)의 custom-dispatch 순서를 사용합니다.
+기존 탭이 주어지면 재사용하고, `--inject` 없이 dispatch하며, `dispatch-show --preamble`으로 정확한
+preamble을 가져오고, 그 preamble과 Task spec을 보내며, Dispatch lifecycle signal을 기다립니다. 이
+경로는 기존 OMO 탭을 보존하지만 native launch receipt나 `launch.requested/effective` 의미는 제공하지
+않습니다.
 
 현재 `dispatch-show` syntax는 `--task <task-id> --preamble --json`이며 `--run`을 넘기지 않습니다.
 관찰한 run에서 반환 preamble은 이미 `=== TASK ===`와 완전한 Task specification을 포함했습니다.

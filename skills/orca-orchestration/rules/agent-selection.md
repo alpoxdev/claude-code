@@ -16,22 +16,59 @@ Read this rule whenever Orca will launch, configure, or recover a coding-agent t
    handle returned by Orca as the sole handle for that agent.
 5. Inspect the terminal before a follow-up send unless its next input is unambiguous.
 
-The direct-command path is required for known unregistered CLIs such as `omo` and `gjc`.
-It is not evidence that every arbitrary executable is safe to launch: confirm the binary is
-available and inspect its `--help` output first.
+OMO is a registered agent through the `pi` launcher: prefer `worker-start --agent pi` for a
+fresh OMO worker (see "OMO native supervised worker via `pi`" below). The direct-command
+custom-dispatch path is required only for a genuinely unregistered CLI such as `gjc`, or to
+reuse an existing user-owned tab. It is not evidence that every arbitrary executable is safe to
+launch: confirm the binary is available and inspect its `--help` output first.
+
+## OMO native supervised worker via `pi`
+
+Orca runtime 1.4.195 registers `pi` as a first-class agent, and the local `pi` launcher runs
+OMO through the orca-pi-adapter wrapper. Prefer the native path for a fresh OMO worker:
+
+```text
+ORCA orchestration worker-start --task <task-id> --agent pi --worktree current --json
+```
+
+One call creates the worker terminal, launches OMO, and delivers the task; a ready result
+reports `stage: input_accepted` and returns the Dispatch id and the created agent terminal
+handle. The worker then reports `status`/`heartbeat` and sends its own `worker_done`, and the
+Task settles `completed` (provenance `worker_report`). This was verified live on Orca 1.4.195
+(run_c5379d5dd75d / task_5fc2c7713ffd / dispatch ctx_9f9f358e4220, 2026-09-02).
+
+Constraints:
+
+- The `omo` agent id is not registered. `worker-start --agent omo` fails; always use `pi`.
+- `worker-start --agent pi` rejects launch-time model selection ("Agent pi does not support
+  launch-time model selection"), so it cannot pin a model. When the default model launched by
+  `pi` is acceptable, use the native path as-is.
+- To pin a fresh worker's model (for example parent-model affinity), do not use the native
+  `--agent pi` launch. Instead split/create a pane, launch `pi --model <id>` there, wait for
+  `tui-idle`, then adopt that pane:
+
+  ```text
+  ORCA terminal split --terminal <parent-handle> --direction vertical --command "pi --model <id>" --json
+  ORCA terminal wait --terminal <pane-handle> --for tui-idle --timeout-ms 60000 --json
+  ORCA orchestration worker-start --task <task-id> --terminal <pane-handle> --worktree current --json
+  ```
+
+  `--terminal` adoption reuses an existing registered-agent terminal and cannot be combined
+  with `--agent` or `--model`. Launching that pane with `pi --model <id>` is what applies the
+  chosen model.
 
 ## Unregistered CLI custom-dispatch worker path
 
-Orca 1.4.192 has no documented public configuration surface for registering OMO as a
-first-class `worker-start` agent. Use the unregistered CLI path until Orca exposes a supported
-registration mechanism. In particular, never suggest an invented configuration such as
-`orca.yaml` plus `--agent omo`, and do not run `worker-start --agent omo` as a registration
-probe.
+Use this path only for a genuinely unregistered CLI (for example GJC) or to reuse an existing
+user-owned tab you must not relaunch. For a fresh OMO worker, use the native `pi` path above
+instead. The `omo` agent id remains unregistered, so never run `worker-start --agent omo` and
+never suggest an invented configuration such as `orca.yaml` plus `--agent omo`; when you need
+native OMO, use `--agent pi`.
 
-An OMO or other unregistered CLI worker uses low-level Dispatch plus terminal input. Its
-Dispatch lifecycle is authoritative only after Orca's exact Dispatch preamble and task spec
-are delivered to the agent. The terminal process remains user-owned; no native
-`worker-start` launch receipt, owned-terminal cleanup, or `launch.requested`/
+A genuinely unregistered CLI worker, or a reused existing tab, uses low-level Dispatch plus
+terminal input. Its Dispatch lifecycle is authoritative only after Orca's exact Dispatch
+preamble and task spec are delivered to the agent. The terminal process remains user-owned; no
+native `worker-start` launch receipt, owned-terminal cleanup, or `launch.requested`/
 `launch.effective` evidence exists for this path.
 
 ### Non-negotiable delivery invariant
@@ -129,7 +166,7 @@ transition unless the user explicitly asks to close it.
 
 | Observation | Required response |
 |---|---|
-| `agent_unconfigured` | This means Orca did not recognize the terminal as a first-class agent; it does not prove OMO failed. Preserve the terminal, never retry `worker-start`, and use the low-level Dispatch protocol. |
+| `agent_unconfigured` | Orca did not recognize the terminal as a first-class agent; it does not prove OMO failed. Preserve the terminal and never retry `worker-start --terminal` against it. For a fresh worker, launch natively with `worker-start --agent pi`; to reuse this exact tab, use the low-level Dispatch protocol. |
 | `tui-idle` timeout | Read the same terminal once, report its state, and neither send a prompt nor create another terminal. |
 | Dispatch creation failure | Preserve Task and terminal state, do not send a prompt, and report the error with Orca's exact recovery action. |
 | `dispatch-show --preamble` failure | Do not send a partial or invented prompt. Preserve the Dispatch and report the exact failure. |
@@ -142,9 +179,10 @@ transition unless the user explicitly asks to close it.
 | `outcome_unknown` | Do not auto-replace. Require explicit user approval per the SKILL.md Supervision loop. |
 | `terminal_gone` | Runtime healthy plus exact handle absent only. Classify per the SKILL.md Supervision loop and escalate with evidence; never confuse with a runtime outage. |
 
-If native `worker-start` features are strictly required, stop and use a registered Orca agent
-or wait for first-class OMO support. Do not cross-agent-fallback merely to obtain lifecycle
-features.
+If native `worker-start` features are strictly required for a fresh OMO worker, use the
+registered `pi` agent (`worker-start --agent pi`) rather than the custom-dispatch path. If a
+required native feature is genuinely unavailable for the chosen agent, stop; do not
+cross-agent-fallback merely to obtain lifecycle features.
 
 ## Parent cleanup responsibility
 
@@ -181,8 +219,9 @@ CLI.
 1. Determine the origin agent from the active agent session/runtime identity first, then the
    active terminal's startup command, then explicit task context. Record the evidence used.
 2. Launch all default workers with that same agent. For example, OMO initiates OMO workers;
-   Claude initiates Claude workers. An Orca-known origin uses the known-agent path; a new
-   unregistered origin uses the custom-dispatch terminal path above, whether new or existing.
+   Claude initiates Claude workers. An OMO origin launches a fresh OMO worker natively with
+   `worker-start --agent pi`; other Orca-known origins use their known-agent path; a genuinely
+   unregistered origin or a reused existing tab uses the custom-dispatch terminal path above.
 3. A user can override affinity only by explicitly naming the replacement worker agent. The
    override is Task-scoped, is recorded in the launch record, and becomes that Task's
    effective worker agent. A request to select a model, effort, provider, profile, credential,
